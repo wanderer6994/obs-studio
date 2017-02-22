@@ -63,4 +63,6 @@
 # define OBS_RELATIVE_PREFIX "../../"
 #endif
 
+# define OBS_DATA_PATH "./data"
+
 #define OBS_INSTALL_DATA_PATH OBS_INSTALL_PREFIX OBS_DATA_PATH
