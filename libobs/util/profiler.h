@@ -59,6 +59,7 @@ EXPORT const char *profile_store_name(profiler_name_store_t *store,
 struct profiler_time_entry {
 	uint64_t time_delta;
 	uint64_t count;
+	uint64_t start_time;
 };
 
 typedef DARRAY(profiler_time_entry_t) profiler_time_entries_t;
