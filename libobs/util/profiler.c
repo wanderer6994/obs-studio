@@ -22,6 +22,7 @@ struct profiler_snapshot_entry {
 	uint64_t min_time;
 	uint64_t max_time;
 	uint64_t overall_count;
+	unsigned int thread_id;
 	profiler_time_entries_t times_between_calls;
 	uint64_t expected_time_between_calls;
 	uint64_t min_time_between_calls;
@@ -43,6 +44,7 @@ struct profile_call {
 #ifdef TRACK_OVERHEAD
 	uint64_t overhead_end;
 #endif
+	unsigned int thread_id;
 	uint64_t expected_time_between_calls;
 	DARRAY(profile_call) children;
 	profile_call *parent;
@@ -73,6 +75,7 @@ struct profile_entry {
 #ifdef TRACK_OVERHEAD
 	profile_times_table overhead;
 #endif
+	unsigned int thread_id;
 	uint64_t expected_time_between_calls;
 	profile_times_table times_between_calls;
 	DARRAY(profile_entry) children;
@@ -227,8 +230,6 @@ static void merge_call(profile_entry *entry, profile_call *call,
 		merge_call(get_child(entry, child->name), child, NULL);
 	}
 
-	/* FIXME: The following is horribly broken. start_time will be wrong. */
-
 	if (entry->expected_time_between_calls != 0 && prev_call) {
 		migrate_old_entries(&entry->times_between_calls, true);
 		uint64_t usec = diff_ns_to_usec(prev_call->start_time, 
@@ -241,6 +242,8 @@ static void merge_call(profile_entry *entry, profile_call *call,
 	uint64_t usec = diff_ns_to_usec(call->start_time, call->end_time);
 	profiler_time_entry_t time_entry = { usec, 1, call->start_time };
 	add_hashmap_entry(&entry->times, time_entry);
+
+	entry->thread_id = call->thread_id;
 
 #ifdef TRACK_OVERHEAD
 	migrate_old_entries(&entry->overhead, true);
@@ -378,6 +381,7 @@ void profile_start(const char *name)
 		.overhead_start = os_gettime_ns(),
 #endif
 		.parent = thread_context,
+		.thread_id = os_thread_getid()
 	};
 
 	profile_call *call = NULL;
@@ -891,6 +895,7 @@ static void add_entry_to_snapshot(profile_entry *entry,
 		profiler_snapshot_entry_t *s_entry)
 {
 	s_entry->name = entry->name;
+	s_entry->thread_id = entry->thread_id;
 
 	s_entry->overall_count = copy_map_to_array(&entry->times,
 			&s_entry->times,
@@ -989,9 +994,9 @@ static void entry_dump_csv(struct dstr *buffer,
 			}
 		}
 
-		dstr_printf(buffer, "%p,%p,%p,%p,%s,"
+		dstr_printf(buffer, "%u,%p,%p,%p,%p,%s,"
 			"%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n", entry,
-			parent, entry->name, parent_name, entry->name,
+			entry->thread_id, parent, entry->name, parent_name, entry->name,
 			entry->expected_time_between_calls,
 			time_between_calls ? time_between_calls->time_delta : 0,
 			entry->times.array[i].time_delta,
@@ -1010,9 +1015,9 @@ static void profiler_snapshot_dump(const profiler_snapshot_t *snap,
 {
 	struct dstr buffer = {0};
 
-	dstr_init_copy(&buffer, "id,parent_id,name_id,parent_name_id,name,"
-			"expected_time_between_calls,actual_time_between_calls,"
-			"time_delta_µs,start_time\n");
+	dstr_init_copy(&buffer, "thread_id,id,parent_id,name_id,"
+			"parent_name_id,name, expected_time_between_calls,"
+			"actual_time_between_calls,time_delta_µs,start_time\n");
 	func(data, &buffer);
 
 	for (size_t i = 0; i < snap->roots.num; i++)
