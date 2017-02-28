@@ -995,8 +995,8 @@ static void entry_dump_csv(struct dstr *buffer,
 		}
 
 		dstr_printf(buffer, "%u,%p,%p,%p,%p,%s,"
-			"%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n", entry,
-			entry->thread_id, parent, entry->name, parent_name, entry->name,
+			"%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n", entry->thread_id,
+			entry, parent, entry->name, parent_name, entry->name,
 			entry->expected_time_between_calls,
 			time_between_calls ? time_between_calls->time_delta : 0,
 			entry->times.array[i].time_delta,
@@ -1016,7 +1016,7 @@ static void profiler_snapshot_dump(const profiler_snapshot_t *snap,
 	struct dstr buffer = {0};
 
 	dstr_init_copy(&buffer, "thread_id,id,parent_id,name_id,"
-			"parent_name_id,name, expected_time_between_calls,"
+			"parent_name_id,name,expected_time_between_calls,"
 			"actual_time_between_calls,time_delta_µs,start_time\n");
 	func(data, &buffer);
 
