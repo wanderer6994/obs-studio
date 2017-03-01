@@ -41,9 +41,11 @@ static uint64_t tick_sources(uint64_t cur_time, uint64_t last_time)
 	/* call the tick function of each source */
 	source = data->first_source;
 	while (source) {
-		profile_start(source->info.id);
+		if (source->info.get_name != NULL)
+			profile_start(source->info.id);
 		obs_source_video_tick(source, seconds);
-		profile_end(source->info.id);
+		if (source->info.get_name != NULL)
+			profile_end(source->info.id);
 		source = (struct obs_source*)source->context.next;
 	}
 
