@@ -22,6 +22,7 @@ struct profiler_snapshot_entry {
 	uint64_t min_time;
 	uint64_t max_time;
 	uint64_t overall_count;
+	unsigned int thread_id;
 	profiler_time_entries_t times_between_calls;
 	uint64_t expected_time_between_calls;
 	uint64_t min_time_between_calls;
@@ -43,6 +44,7 @@ struct profile_call {
 #ifdef TRACK_OVERHEAD
 	uint64_t overhead_end;
 #endif
+	unsigned int thread_id;
 	uint64_t expected_time_between_calls;
 	DARRAY(profile_call) children;
 	profile_call *parent;
@@ -73,6 +75,7 @@ struct profile_entry {
 #ifdef TRACK_OVERHEAD
 	profile_times_table overhead;
 #endif
+	unsigned int thread_id;
 	uint64_t expected_time_between_calls;
 	profile_times_table times_between_calls;
 	DARRAY(profile_entry) children;
@@ -99,28 +102,22 @@ static inline void update_max_probes(profile_times_table *map, size_t val)
 
 static void migrate_old_entries(profile_times_table *map, bool limit_items);
 static void grow_hashmap(profile_times_table *map,
-		uint64_t usec, uint64_t count);
+		profiler_time_entry_t time_entry);
 
-static void add_hashmap_entry(profile_times_table *map, uint64_t usec,
-		uint64_t count)
+static void add_hashmap_entry(profile_times_table *map, 
+		profiler_time_entry_t time_entry)
 {
 	size_t probes = 1;
 
-	size_t start = usec % map->size;
+	size_t start = time_entry.time_delta % map->size;
 	for (;; probes += 1) {
 		size_t idx = (start + probes) % map->size;
 		profile_times_table_entry *entry = &map->entries[idx];
 		if (!entry->probes) {
 			entry->probes = probes;
-			entry->entry.time_delta = usec;
-			entry->entry.count = count;
+			entry->entry = time_entry;
 			map->occupied += 1;
 			update_max_probes(map, probes);
-			return;
-		}
-
-		if (entry->entry.time_delta == usec) {
-			entry->entry.count += count;
 			return;
 		}
 
@@ -128,25 +125,22 @@ static void add_hashmap_entry(profile_times_table *map, uint64_t usec,
 			continue;
 
 		if (map->occupied/(double)map->size > 0.7) {
-			grow_hashmap(map, usec, count);
+			grow_hashmap(map, time_entry);
 			return;
 		}
 
 		size_t   old_probes = entry->probes;
-		uint64_t old_count  = entry->entry.count;
-		uint64_t old_usec   = entry->entry.time_delta;
+
+		profiler_time_entry_t old = entry->entry;
 
 		entry->probes = probes;
-		entry->entry.count = count;
-		entry->entry.time_delta = usec;
+		entry->entry = time_entry;
 
 		update_max_probes(map, probes);
 
-		probes = old_probes;
-		count  = old_count;
-		usec   = old_usec;
+		time_entry = old;
 
-		start = usec % map->size;
+		start = time_entry.time_delta % map->size;
 	}
 }
 
@@ -181,14 +175,13 @@ static void migrate_old_entries(profile_times_table *map, bool limit_items)
 		if (!entry->probes)
 			continue;
 
-		add_hashmap_entry(map, entry->entry.time_delta,
-				entry->entry.count);
+		add_hashmap_entry(map, entry->entry);
 		map->old_occupied -= 1;
 	}
 }
 
 static void grow_hashmap(profile_times_table *map,
-		uint64_t usec, uint64_t count)
+		profiler_time_entry_t time_entry)
 {
 	migrate_old_entries(map, false);
 
@@ -201,7 +194,7 @@ static void grow_hashmap(profile_times_table *map,
 	map->old_occupied = old_occupied;
 	map->old_entries  = entries;
 
-	add_hashmap_entry(map, usec, count);
+	add_hashmap_entry(map, time_entry);
 }
 
 static profile_entry *init_entry(profile_entry *entry, const char *name)
@@ -239,14 +232,18 @@ static void merge_call(profile_entry *entry, profile_call *call,
 
 	if (entry->expected_time_between_calls != 0 && prev_call) {
 		migrate_old_entries(&entry->times_between_calls, true);
-		uint64_t usec = diff_ns_to_usec(prev_call->start_time,
+		uint64_t usec = diff_ns_to_usec(prev_call->start_time, 
 				call->start_time);
-		add_hashmap_entry(&entry->times_between_calls, usec, 1);
+		profiler_time_entry_t time_entry = { usec, 1, call->start_time };
+		add_hashmap_entry(&entry->times_between_calls, time_entry);
 	}
 
 	migrate_old_entries(&entry->times, true);
 	uint64_t usec = diff_ns_to_usec(call->start_time, call->end_time);
-	add_hashmap_entry(&entry->times, usec, 1);
+	profiler_time_entry_t time_entry = { usec, 1, call->start_time };
+	add_hashmap_entry(&entry->times, time_entry);
+
+	entry->thread_id = call->thread_id;
 
 #ifdef TRACK_OVERHEAD
 	migrate_old_entries(&entry->overhead, true);
@@ -257,6 +254,7 @@ static void merge_call(profile_entry *entry, profile_call *call,
 }
 
 static bool enabled = false;
+static uint64_t initial_time;
 static pthread_mutex_t root_mutex = PTHREAD_MUTEX_INITIALIZER;
 static DARRAY(profile_root_entry) root_entries;
 
@@ -271,6 +269,7 @@ static __thread bool thread_enabled = true;
 void profiler_start(void)
 {
 	pthread_mutex_lock(&root_mutex);
+	initial_time = os_gettime_ns();
 	enabled = true;
 	pthread_mutex_unlock(&root_mutex);
 }
@@ -278,6 +277,7 @@ void profiler_start(void)
 void profiler_stop(void)
 {
 	pthread_mutex_lock(&root_mutex);
+	initial_time = 0;
 	enabled = false;
 	pthread_mutex_unlock(&root_mutex);
 }
@@ -381,6 +381,7 @@ void profile_start(const char *name)
 		.overhead_start = os_gettime_ns(),
 #endif
 		.parent = thread_context,
+		.thread_id = os_thread_getid()
 	};
 
 	profile_call *call = NULL;
@@ -394,12 +395,12 @@ void profile_start(const char *name)
 	}
 
 	thread_context = call;
-	call->start_time = os_gettime_ns();
+	call->start_time = os_gettime_ns() - initial_time;
 }
 
 void profile_end(const char *name)
 {
-	uint64_t end = os_gettime_ns();
+	uint64_t end = os_gettime_ns() - initial_time;
 	if (!thread_enabled)
 		return;
 
@@ -894,6 +895,7 @@ static void add_entry_to_snapshot(profile_entry *entry,
 		profiler_snapshot_entry_t *s_entry)
 {
 	s_entry->name = entry->name;
+	s_entry->thread_id = entry->thread_id;
 
 	s_entry->overall_count = copy_map_to_array(&entry->times,
 			&s_entry->times,
@@ -980,21 +982,26 @@ static void entry_dump_csv(struct dstr *buffer,
 	const char *parent_name = parent ? parent->name : NULL;
 
 	for (size_t i = 0; i < entry->times.num; i++) {
-		dstr_printf(buffer, "%p,%p,%p,%p,%s,0,"
-				"%"PRIu64",%"PRIu64"\n", entry,
-				parent, entry->name, parent_name, entry->name,
-				entry->times.array[i].time_delta,
-				entry->times.array[i].count);
-		func(data, buffer);
-	}
 
-	for (size_t i = 0; i < entry->times_between_calls.num; i++) {
-		dstr_printf(buffer,"%p,%p,%p,%p,%s,"
-				"%"PRIu64",%"PRIu64",%"PRIu64"\n", entry,
-				parent, entry->name, parent_name, entry->name,
-				entry->expected_time_between_calls,
-				entry->times_between_calls.array[i].time_delta,
-				entry->times_between_calls.array[i].count);
+		profiler_time_entry_t *time_between_calls = NULL;
+
+		/* Find the matching between_calls if it exists. */
+		for (size_t k = 0; k < entry->times_between_calls.num; ++k) {
+			if (entry->times.array[i].start_time == 
+						entry->times_between_calls.array[k].start_time) {
+				time_between_calls = &entry->times_between_calls.array[k];
+				break;
+			}
+		}
+
+		dstr_printf(buffer, "%u,%p,%p,%p,%p,%s,"
+			"%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n", entry->thread_id,
+			entry, parent, entry->name, parent_name, entry->name,
+			entry->expected_time_between_calls,
+			time_between_calls ? time_between_calls->time_delta : 0,
+			entry->times.array[i].time_delta,
+			entry->times.array[i].start_time);
+
 		func(data, buffer);
 	}
 
@@ -1008,8 +1015,9 @@ static void profiler_snapshot_dump(const profiler_snapshot_t *snap,
 {
 	struct dstr buffer = {0};
 
-	dstr_init_copy(&buffer, "id,parent_id,name_id,parent_name_id,name,"
-			"time_between_calls,time_delta_µs,count\n");
+	dstr_init_copy(&buffer, "thread_id,id,parent_id,name_id,"
+			"parent_name_id,name,expected_time_between_calls,"
+			"actual_time_between_calls,time_delta_µs,start_time\n");
 	func(data, &buffer);
 
 	for (size_t i = 0; i < snap->roots.num; i++)

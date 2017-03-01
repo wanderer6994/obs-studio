@@ -63,6 +63,8 @@ struct os_sem_data;
 typedef struct os_event_data os_event_t;
 typedef struct os_sem_data   os_sem_t;
 
+EXPORT unsigned int  os_thread_getid(void);
+
 EXPORT int  os_event_init(os_event_t **event, enum os_event_type type);
 EXPORT void os_event_destroy(os_event_t *event);
 EXPORT int  os_event_wait(os_event_t *event);
