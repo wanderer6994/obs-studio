@@ -165,6 +165,9 @@
                    <string>Basic.Settings.General</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_32">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <property name="labelAlignment">
                     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                    </property>
@@ -232,6 +235,9 @@
                    <string>Basic.Settings.Output</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_2">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <property name="topMargin">
                     <number>2</number>
                    </property>
@@ -239,6 +245,9 @@
                     <spacer name="horizontalSpacer_5">
                      <property name="orientation">
                       <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeType">
+                      <enum>QSizePolicy::Fixed</enum>
                      </property>
                      <property name="sizeHint" stdset="0">
                       <size>
@@ -317,6 +326,9 @@
                    <bool>false</bool>
                   </property>
                   <layout class="QFormLayout" name="formLayout_21">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <property name="labelAlignment">
                     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                    </property>
@@ -411,6 +423,9 @@
                    <string>Basic.Settings.General.Projectors</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_28">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <property name="topMargin">
                     <number>2</number>
                    </property>
@@ -460,13 +475,16 @@
                    <string>Basic.Settings.General.SysTray</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_29">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <property name="topMargin">
                     <number>2</number>
                    </property>
                    <item row="0" column="1">
                     <widget class="QCheckBox" name="systemTrayEnabled">
                      <property name="text">
-                      <string>Enabled</string>
+                      <string>Enable</string>
                      </property>
                     </widget>
                    </item>
@@ -1910,7 +1928,7 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="6" column="0">
+                     <item row="7" column="0">
                       <widget class="QLabel" name="label_40">
                        <property name="text">
                         <string>Basic.Settings.Output.VideoBitrate</string>
@@ -1920,7 +1938,7 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="6" column="1">
+                     <item row="7" column="1">
                       <widget class="QSpinBox" name="advOutFFVBitrate">
                        <property name="minimum">
                         <number>0</number>
@@ -1933,7 +1951,27 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="7" column="0">
+                     <item row="8" column="1">
+                      <widget class="QSpinBox" name="advOutFFVGOPSize">
+                       <property name="maximum">
+                        <number>1000000000</number>
+                       </property>
+                       <property name="value">
+                        <number>250</number>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="8" column="0">
+                      <widget class="QLabel" name="label_63">
+                       <property name="text">
+                        <string>Basic.Settings.Output.Adv.FFmpeg.GOPSize</string>
+                       </property>
+                       <property name="buddy">
+                        <cstring>advOutFFVGOPSize</cstring>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="9" column="0">
                       <widget class="QCheckBox" name="advOutFFUseRescale">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
@@ -1949,7 +1987,7 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="7" column="1">
+                     <item row="9" column="1">
                       <widget class="QComboBox" name="advOutFFRescale">
                        <property name="enabled">
                         <bool>false</bool>
@@ -1959,7 +1997,14 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="8" column="0">
+                     <item row="10" column="1">
+                      <widget class="QCheckBox" name="advOutFFIgnoreCompat">
+                       <property name="text">
+                        <string>Basic.Settings.Output.Adv.FFmpeg.IgnoreCodecCompat</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="11" column="0">
                       <widget class="QLabel" name="label_37">
                        <property name="text">
                         <string>Basic.Settings.Output.Adv.FFmpeg.VEncoder</string>
@@ -1969,10 +2014,10 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="8" column="1">
+                     <item row="11" column="1">
                       <widget class="QComboBox" name="advOutFFVEncoder"/>
                      </item>
-                     <item row="10" column="0">
+                     <item row="13" column="0">
                       <widget class="QLabel" name="label_38">
                        <property name="text">
                         <string>Basic.Settings.Output.Adv.FFmpeg.VEncoderSettings</string>
@@ -1982,10 +2027,10 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="10" column="1">
+                     <item row="13" column="1">
                       <widget class="QLineEdit" name="advOutFFVCfg"/>
                      </item>
-                     <item row="11" column="0">
+                     <item row="14" column="0">
                       <widget class="QLabel" name="label_41">
                        <property name="text">
                         <string>Basic.Settings.Output.AudioBitrate</string>
@@ -1995,7 +2040,7 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="11" column="1">
+                     <item row="14" column="1">
                       <widget class="QSpinBox" name="advOutFFABitrate">
                        <property name="minimum">
                         <number>32</number>
@@ -2011,14 +2056,14 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="12" column="0">
+                     <item row="15" column="0">
                       <widget class="QLabel" name="label_47">
                        <property name="text">
                         <string>Basic.Settings.Output.Adv.AudioTrack</string>
                        </property>
                       </widget>
                      </item>
-                     <item row="12" column="1">
+                     <item row="15" column="1">
                       <widget class="QWidget" name="widget_10" native="true">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -2087,7 +2132,7 @@
                        </layout>
                       </widget>
                      </item>
-                     <item row="13" column="0">
+                     <item row="17" column="0">
                       <widget class="QLabel" name="label_39">
                        <property name="text">
                         <string>Basic.Settings.Output.Adv.FFmpeg.AEncoder</string>
@@ -2097,10 +2142,10 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="13" column="1">
+                     <item row="17" column="1">
                       <widget class="QComboBox" name="advOutFFAEncoder"/>
                      </item>
-                     <item row="14" column="0">
+                     <item row="18" column="0">
                       <widget class="QLabel" name="label_46">
                        <property name="text">
                         <string>Basic.Settings.Output.Adv.FFmpeg.AEncoderSettings</string>
@@ -2110,7 +2155,7 @@
                        </property>
                       </widget>
                      </item>
-                     <item row="14" column="1">
+                     <item row="18" column="1">
                       <widget class="QLineEdit" name="advOutFFACfg"/>
                      </item>
                      <item row="0" column="0">
@@ -3085,8 +3130,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>63</width>
-              <height>16</height>
+              <width>98</width>
+              <height>28</height>
              </rect>
             </property>
            </widget>
@@ -3456,8 +3501,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>593</width>
-              <height>699</height>
+              <width>803</width>
+              <height>738</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_16">
@@ -3482,6 +3527,9 @@
                    <string>Basic.Settings.General</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_22">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <item row="0" column="0">
                     <widget class="QLabel" name="processPriorityLabel">
                      <property name="text">
@@ -3691,6 +3739,9 @@
                    <string>Basic.Settings.Audio</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_27">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <item row="0" column="0">
                     <widget class="QLabel" name="monitoringDeviceLabel">
                      <property name="text">
@@ -3713,6 +3764,9 @@
                    <string>Basic.Settings.Output.Adv.Recording</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_17">
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
                    <property name="labelAlignment">
                     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                    </property>
@@ -3787,16 +3841,12 @@
                    <string>Basic.Settings.Advanced.StreamDelay</string>
                   </property>
                   <layout class="QFormLayout" name="formLayout_18">
-                   <item row="0" column="1">
-                    <widget class="QCheckBox" name="streamDelayEnable">
-                     <property name="text">
-                      <string>Enable</string>
-                     </property>
-                     <property name="checked">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
+                   <property name="fieldGrowthPolicy">
+                    <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                   </property>
+                   <property name="topMargin">
+                    <number>2</number>
+                   </property>
                    <item row="1" column="0">
                     <widget class="QLabel" name="label_56">
                      <property name="text">
@@ -3870,6 +3920,16 @@
                     <widget class="QCheckBox" name="streamDelayPreserve">
                      <property name="text">
                       <string>Basic.Settings.Advanced.StreamDelay.Preserve</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QCheckBox" name="streamDelayEnable">
+                     <property name="text">
+                      <string>Enable</string>
+                     </property>
+                     <property name="checked">
+                      <bool>true</bool>
                      </property>
                     </widget>
                    </item>
@@ -3958,7 +4018,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QGroupBox" name="groupBox_11">
+                 <widget class="QGroupBox" name="advNetworkGroupBox">
                   <property name="title">
                    <string>Basic.Settings.Advanced.Network</string>
                   </property>
@@ -3976,6 +4036,23 @@
                      </property>
                      <property name="buddy">
                       <cstring>bindToIP</cstring>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QCheckBox" name="enableNewSocketLoop">
+                     <property name="text">
+                      <string>Basic.Settings.Advanced.Network.EnableNewSocketLoop</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1">
+                    <widget class="QCheckBox" name="enableLowLatencyMode">
+                     <property name="enabled">
+                      <bool>false</bool>
+                     </property>
+                     <property name="text">
+                      <string>Basic.Settings.Advanced.Network.EnableLowLatencyMode</string>
                      </property>
                     </widget>
                    </item>
@@ -4082,8 +4159,10 @@
   <tabstop>advOutFFURL</tabstop>
   <tabstop>advOutFFFormat</tabstop>
   <tabstop>advOutFFVBitrate</tabstop>
+  <tabstop>advOutFFVGOPSize</tabstop>
   <tabstop>advOutFFUseRescale</tabstop>
   <tabstop>advOutFFRescale</tabstop>
+  <tabstop>advOutFFIgnoreCompat</tabstop>
   <tabstop>advOutFFVEncoder</tabstop>
   <tabstop>advOutFFVCfg</tabstop>
   <tabstop>advOutFFABitrate</tabstop>
@@ -4147,6 +4226,29 @@
   <tabstop>reconnectRetryDelay</tabstop>
   <tabstop>reconnectMaxRetries</tabstop>
   <tabstop>bindToIP</tabstop>
+  <tabstop>enableNewSocketLoop</tabstop>
+  <tabstop>enableLowLatencyMode</tabstop>
+  <tabstop>warnBeforeStreamStop</tabstop>
+  <tabstop>recordWhenStreaming</tabstop>
+  <tabstop>keepRecordStreamStops</tabstop>
+  <tabstop>replayWhileStreaming</tabstop>
+  <tabstop>keepReplayStreamStops</tabstop>
+  <tabstop>snappingEnabled</tabstop>
+  <tabstop>screenSnapping</tabstop>
+  <tabstop>centerSnapping</tabstop>
+  <tabstop>sourceSnapping</tabstop>
+  <tabstop>snapDistance</tabstop>
+  <tabstop>hideProjectorCursor</tabstop>
+  <tabstop>projectorAlwaysOnTop</tabstop>
+  <tabstop>saveProjectors</tabstop>
+  <tabstop>systemTrayEnabled</tabstop>
+  <tabstop>systemTrayWhenStarted</tabstop>
+  <tabstop>systemTrayAlways</tabstop>
+  <tabstop>enableAutoUpdates</tabstop>
+  <tabstop>warnBeforeStreamStart</tabstop>
+  <tabstop>scrollArea_2</tabstop>
+  <tabstop>language</tabstop>
+  <tabstop>theme</tabstop>
  </tabstops>
  <resources>
   <include location="obs.qrc"/>
@@ -4276,7 +4378,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>241</x>
-     <y>54</y>
+     <y>53</y>
     </hint>
    </hints>
   </connection>
@@ -4291,7 +4393,7 @@
      <y>67</y>
     </hint>
     <hint type="destinationlabel">
-     <x>243</x>
+     <x>250</x>
      <y>67</y>
     </hint>
    </hints>
@@ -4345,54 +4447,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>streamDelayEnable</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>label_56</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>503</x>
-     <y>450</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>269</x>
-     <y>476</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>streamDelayEnable</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>streamDelayPreserve</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>503</x>
-     <y>450</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>503</x>
-     <y>499</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>streamDelayEnable</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>widget_12</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>503</x>
-     <y>450</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>503</x>
-     <y>476</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>simpleOutAdvanced</sender>
    <signal>toggled(bool)</signal>
    <receiver>simpleOutEnforce</receiver>
@@ -4415,12 +4469,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>384</x>
-     <y>559</y>
+     <x>730</x>
+     <y>556</y>
     </hint>
     <hint type="destinationlabel">
-     <x>400</x>
-     <y>585</y>
+     <x>746</x>
+     <y>579</y>
     </hint>
    </hints>
   </connection>
@@ -4431,12 +4485,28 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>484</x>
-     <y>566</y>
+     <x>830</x>
+     <y>556</y>
     </hint>
     <hint type="destinationlabel">
-     <x>480</x>
-     <y>605</y>
+     <x>826</x>
+     <y>602</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>enableNewSocketLoop</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>enableLowLatencyMode</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>403</x>
+     <y>642</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>403</x>
+     <y>665</y>
     </hint>
    </hints>
   </connection>
@@ -4447,12 +4517,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>380</x>
-     <y>322</y>
+     <x>733</x>
+     <y>317</y>
     </hint>
     <hint type="destinationlabel">
-     <x>330</x>
-     <y>350</y>
+     <x>347</x>
+     <y>343</y>
     </hint>
    </hints>
   </connection>
@@ -4463,12 +4533,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>421</x>
-     <y>325</y>
+     <x>774</x>
+     <y>317</y>
     </hint>
     <hint type="destinationlabel">
-     <x>429</x>
-     <y>346</y>
+     <x>782</x>
+     <y>343</y>
     </hint>
    </hints>
   </connection>
@@ -4479,12 +4549,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>467</x>
-     <y>325</y>
+     <x>820</x>
+     <y>317</y>
     </hint>
     <hint type="destinationlabel">
-     <x>484</x>
-     <y>378</y>
+     <x>837</x>
+     <y>366</y>
     </hint>
    </hints>
   </connection>
@@ -4495,12 +4565,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>528</x>
-     <y>329</y>
+     <x>881</x>
+     <y>317</y>
     </hint>
     <hint type="destinationlabel">
-     <x>537</x>
-     <y>392</y>
+     <x>890</x>
+     <y>389</y>
     </hint>
    </hints>
   </connection>
@@ -4511,12 +4581,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>575</x>
-     <y>328</y>
+     <x>928</x>
+     <y>317</y>
     </hint>
     <hint type="destinationlabel">
-     <x>562</x>
-     <y>422</y>
+     <x>915</x>
+     <y>412</y>
     </hint>
    </hints>
   </connection>
@@ -4527,12 +4597,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>457</x>
-     <y>205</y>
+     <x>803</x>
+     <y>199</y>
     </hint>
     <hint type="destinationlabel">
-     <x>474</x>
-     <y>226</y>
+     <x>820</x>
+     <y>222</y>
     </hint>
    </hints>
   </connection>
@@ -4543,12 +4613,76 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>401</x>
-     <y>247</y>
+     <x>747</x>
+     <y>245</y>
     </hint>
     <hint type="destinationlabel">
-     <x>407</x>
-     <y>270</y>
+     <x>753</x>
+     <y>268</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>streamDelayEnable</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>label_56</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>431</x>
+     <y>422</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>356</x>
+     <y>443</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>streamDelayEnable</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>streamDelaySec</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>465</x>
+     <y>420</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>463</x>
+     <y>447</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>streamDelayEnable</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>streamDelayInfo</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>533</x>
+     <y>420</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>557</x>
+     <y>446</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>streamDelayEnable</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>streamDelayPreserve</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>504</x>
+     <y>420</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>494</x>
+     <y>465</y>
     </hint>
    </hints>
   </connection>

@@ -587,6 +587,18 @@ static bool LogSceneItem(obs_scene_t*, obs_sceneitem_t *item, void*)
 
 	blog(LOG_INFO, "    - source: '%s' (%s)", name, id);
 
+	obs_monitoring_type monitoring_type =
+		obs_source_get_monitoring_type(source);
+
+	if (monitoring_type != OBS_MONITORING_TYPE_NONE) {
+		const char *type =
+			(monitoring_type == OBS_MONITORING_TYPE_MONITOR_ONLY)
+			? "monitor only"
+			: "monitor and output";
+
+		blog(LOG_INFO, "        - monitoring: %s", type);
+	}
+
 	obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)2);
 	return true;
 }
@@ -974,7 +986,10 @@ bool OBSBasic::InitBasicConfigDefaults()
 			GetDefaultVideoSavePath().c_str());
 	config_set_default_string(basicConfig, "AdvOut", "FFExtension", "mp4");
 	config_set_default_uint  (basicConfig, "AdvOut", "FFVBitrate", 2500);
+	config_set_default_uint  (basicConfig, "AdvOut", "FFVGOPSize", 250);
 	config_set_default_bool  (basicConfig, "AdvOut", "FFUseRescale",
+			false);
+	config_set_default_bool  (basicConfig, "AdvOut", "FFIgnoreCompat",
 			false);
 	config_set_default_uint  (basicConfig, "AdvOut", "FFABitrate", 160);
 	config_set_default_uint  (basicConfig, "AdvOut", "FFAudioTrack", 1);
@@ -1001,6 +1016,10 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_uint  (basicConfig, "Output", "MaxRetries", 20);
 
 	config_set_default_string(basicConfig, "Output", "BindIP", "default");
+	config_set_default_bool  (basicConfig, "Output", "NewSocketLoopEnable",
+			false);
+	config_set_default_bool  (basicConfig, "Output", "LowLatencyEnable",
+			false);
 
 	int i = 0;
 	uint32_t scale_cx = cx;
@@ -1237,6 +1256,19 @@ void OBSBasic::OBSInit()
 		if (ret != OBS_VIDEO_SUCCESS)
 			throw UNKNOWN_ERROR;
 	}
+
+	/* load audio monitoring */
+#if defined(_WIN32) || defined(__APPLE__)
+	const char *device_name = config_get_string(basicConfig, "Audio",
+			"MonitoringDeviceName");
+	const char *device_id = config_get_string(basicConfig, "Audio",
+			"MonitoringDeviceId");
+
+	obs_set_audio_monitoring_device(device_name, device_id);
+
+	blog(LOG_INFO, "Audio monitoring device:\n\tname: %s\n\tid: %s",
+			device_name, device_id);
+#endif
 
 	InitOBSCallbacks();
 	InitHotkeys();
@@ -1918,6 +1950,9 @@ void OBSBasic::RemoveScene(OBSSource source)
 		blog(LOG_INFO, "User Removed scene '%s'",
 				obs_source_get_name(source));
 	}
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED);
 }
 
 void OBSBasic::AddSceneItem(OBSSceneItem item)
@@ -3041,7 +3076,7 @@ void OBSBasic::on_actionAddScene_triggered()
 	string name;
 	QString format{QTStr("Basic.Main.DefaultSceneName.Text")};
 
-	int i = 1;
+	int i = 2;
 	QString placeHolderText = format.arg(i);
 	obs_source_t *source = nullptr;
 	while ((source = obs_get_source_by_name(QT_TO_UTF8(placeHolderText)))) {
