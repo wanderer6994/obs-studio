@@ -22,7 +22,6 @@ struct profiler_snapshot_entry {
 	uint64_t min_time;
 	uint64_t max_time;
 	uint64_t overall_count;
-	unsigned int thread_id;
 	profiler_time_entries_t times_between_calls;
 	uint64_t expected_time_between_calls;
 	uint64_t min_time_between_calls;
@@ -44,7 +43,6 @@ struct profile_call {
 #ifdef TRACK_OVERHEAD
 	uint64_t overhead_end;
 #endif
-	unsigned int thread_id;
 	uint64_t expected_time_between_calls;
 	DARRAY(profile_call) children;
 	profile_call *parent;
@@ -75,7 +73,6 @@ struct profile_entry {
 #ifdef TRACK_OVERHEAD
 	profile_times_table overhead;
 #endif
-	unsigned int thread_id;
 	uint64_t expected_time_between_calls;
 	profile_times_table times_between_calls;
 	DARRAY(profile_entry) children;
@@ -104,7 +101,7 @@ static void migrate_old_entries(profile_times_table *map, bool limit_items);
 static void grow_hashmap(profile_times_table *map,
 		profiler_time_entry_t time_entry);
 
-static void add_hashmap_entry(profile_times_table *map, 
+static void add_hashmap_entry(profile_times_table *map,
 		profiler_time_entry_t time_entry)
 {
 	size_t probes = 1;
@@ -232,7 +229,7 @@ static void merge_call(profile_entry *entry, profile_call *call,
 
 	if (entry->expected_time_between_calls != 0 && prev_call) {
 		migrate_old_entries(&entry->times_between_calls, true);
-		uint64_t usec = diff_ns_to_usec(prev_call->start_time, 
+		uint64_t usec = diff_ns_to_usec(prev_call->start_time,
 				call->start_time);
 		profiler_time_entry_t time_entry = { usec, 1, call->start_time };
 		add_hashmap_entry(&entry->times_between_calls, time_entry);
@@ -242,8 +239,6 @@ static void merge_call(profile_entry *entry, profile_call *call,
 	uint64_t usec = diff_ns_to_usec(call->start_time, call->end_time);
 	profiler_time_entry_t time_entry = { usec, 1, call->start_time };
 	add_hashmap_entry(&entry->times, time_entry);
-
-	entry->thread_id = call->thread_id;
 
 #ifdef TRACK_OVERHEAD
 	migrate_old_entries(&entry->overhead, true);
@@ -380,8 +375,7 @@ void profile_start(const char *name)
 #ifdef TRACK_OVERHEAD
 		.overhead_start = os_gettime_ns(),
 #endif
-		.parent = thread_context,
-		.thread_id = os_thread_getid()
+		.parent = thread_context
 	};
 
 	profile_call *call = NULL;
@@ -511,7 +505,7 @@ static void make_indent_string(struct dstr *indent_buffer, unsigned indent,
 			fragment = last ? VPIPE_RIGHT : VPIPE;
 		else
 			fragment = last ? DOWN_RIGHT : "  ";
-		
+
 		dstr_cat(indent_buffer, fragment);
 	}
 }
@@ -843,7 +837,7 @@ struct profiler_name_store {
 profiler_name_store_t *profiler_name_store_create(void)
 {
 	profiler_name_store_t *store = bzalloc(sizeof(profiler_name_store_t));
-	
+
 	if (pthread_mutex_init(&store->mutex, NULL))
 		goto error;
 
@@ -895,13 +889,12 @@ static void add_entry_to_snapshot(profile_entry *entry,
 		profiler_snapshot_entry_t *s_entry)
 {
 	s_entry->name = entry->name;
-	s_entry->thread_id = entry->thread_id;
 
 	s_entry->overall_count = copy_map_to_array(&entry->times,
 			&s_entry->times,
 			&s_entry->min_time, &s_entry->max_time);
 
-	if ((s_entry->expected_time_between_calls = 
+	if ((s_entry->expected_time_between_calls =
 				entry->expected_time_between_calls))
 		s_entry->overall_between_calls_count =
 			copy_map_to_array(&entry->times_between_calls,
@@ -987,15 +980,15 @@ static void entry_dump_csv(struct dstr *buffer,
 
 		/* Find the matching between_calls if it exists. */
 		for (size_t k = 0; k < entry->times_between_calls.num; ++k) {
-			if (entry->times.array[i].start_time == 
+			if (entry->times.array[i].start_time ==
 						entry->times_between_calls.array[k].start_time) {
 				time_between_calls = &entry->times_between_calls.array[k];
 				break;
 			}
 		}
 
-		dstr_printf(buffer, "%u,%p,%p,%p,%p,%s,"
-			"%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n", entry->thread_id,
+		dstr_printf(buffer, "%p,%p,%p,%p,%s,"
+			"%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64"\n",
 			entry, parent, entry->name, parent_name, entry->name,
 			entry->expected_time_between_calls,
 			time_between_calls ? time_between_calls->time_delta : 0,
@@ -1015,7 +1008,7 @@ static void profiler_snapshot_dump(const profiler_snapshot_t *snap,
 {
 	struct dstr buffer = {0};
 
-	dstr_init_copy(&buffer, "thread_id,id,parent_id,name_id,"
+	dstr_init_copy(&buffer, "id,parent_id,name_id,"
 			"parent_name_id,name,expected_time_between_calls,"
 			"actual_time_between_calls,time_delta_µs,start_time\n");
 	func(data, &buffer);

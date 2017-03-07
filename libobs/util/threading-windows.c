@@ -35,11 +35,6 @@
 #endif
 #endif
 
-unsigned int os_thread_getid(void)
-{
-	return GetCurrentThreadId();
-}
-
 int os_event_init(os_event_t **event, enum os_event_type type)
 {
 	HANDLE handle;
