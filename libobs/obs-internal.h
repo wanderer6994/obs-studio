@@ -24,6 +24,7 @@
 #include "util/threading.h"
 #include "util/platform.h"
 #include "util/profiler.h"
+#include "util/threaded-memcpy.h"
 #include "callback/signal.h"
 #include "callback/proc.h"
 

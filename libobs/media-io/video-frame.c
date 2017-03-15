@@ -16,6 +16,9 @@
 ******************************************************************************/
 
 #include "video-frame.h"
+#include "util/threaded-memcpy.h"
+
+struct memcpy_environment *memcpy_env; /* Forward declaration from obs.c */
 
 #define ALIGN_SIZE(size, align) \
 	size = (((size)+(align-1)) & (~(align-1)))
@@ -112,14 +115,14 @@ void video_frame_copy(struct video_frame *dst, const struct video_frame *src,
 		return;
 
 	case VIDEO_FORMAT_I420:
-		memcpy(dst->data[0], src->data[0], src->linesize[0] * cy);
-		memcpy(dst->data[1], src->data[1], src->linesize[1] * cy / 2);
-		memcpy(dst->data[2], src->data[2], src->linesize[2] * cy / 2);
+		threaded_memcpy(dst->data[0], src->data[0], src->linesize[0] * cy, memcpy_env);
+		threaded_memcpy(dst->data[1], src->data[1], src->linesize[1] * cy / 2, memcpy_env);
+		threaded_memcpy(dst->data[2], src->data[2], src->linesize[2] * cy / 2, memcpy_env);
 		break;
 
 	case VIDEO_FORMAT_NV12:
-		memcpy(dst->data[0], src->data[0], src->linesize[0] * cy);
-		memcpy(dst->data[1], src->data[1], src->linesize[1] * cy / 2);
+		threaded_memcpy(dst->data[0], src->data[0], src->linesize[0] * cy, memcpy_env);
+		threaded_memcpy(dst->data[1], src->data[1], src->linesize[1] * cy / 2, memcpy_env);
 		break;
 
 	case VIDEO_FORMAT_Y800:
@@ -129,13 +132,13 @@ void video_frame_copy(struct video_frame *dst, const struct video_frame *src,
 	case VIDEO_FORMAT_RGBA:
 	case VIDEO_FORMAT_BGRA:
 	case VIDEO_FORMAT_BGRX:
-		memcpy(dst->data[0], src->data[0], src->linesize[0] * cy);
+		threaded_memcpy(dst->data[0], src->data[0], src->linesize[0] * cy, memcpy_env);
 		break;
 
 	case VIDEO_FORMAT_I444:
-		memcpy(dst->data[0], src->data[0], src->linesize[0] * cy);
-		memcpy(dst->data[1], src->data[1], src->linesize[1] * cy);
-		memcpy(dst->data[2], src->data[2], src->linesize[2] * cy);
+		threaded_memcpy(dst->data[0], src->data[0], src->linesize[0] * cy, memcpy_env);
+		threaded_memcpy(dst->data[1], src->data[1], src->linesize[1] * cy, memcpy_env);
+		threaded_memcpy(dst->data[2], src->data[2], src->linesize[2] * cy, memcpy_env);
 		break;
 	}
 }

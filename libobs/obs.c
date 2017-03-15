@@ -25,6 +25,8 @@
 
 struct obs_core *obs = NULL;
 
+struct memcpy_environment *memcpy_env = NULL;
+
 extern void add_default_module_paths(void);
 extern char *find_libobs_data_file(const char *file);
 
@@ -741,6 +743,8 @@ static bool obs_init(const char *locale, const char *module_config_path,
 		profiler_name_store_t *store)
 {
 	obs = bzalloc(sizeof(struct obs_core));
+
+	memcpy_env = init_threaded_memcpy_pool(0);
 
 	pthread_mutex_init_value(&obs->audio.monitoring_mutex);
 
