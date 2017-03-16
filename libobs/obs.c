@@ -866,6 +866,8 @@ void obs_shutdown(void)
 	bfree(obs);
 	obs = NULL;
 
+	destroy_threaded_memcpy_pool(memcpy_env);
+
 #ifdef _WIN32
 	uninitialize_com();
 #endif

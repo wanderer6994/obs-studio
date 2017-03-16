@@ -33,7 +33,6 @@ struct memcpy_thread_work {
 	void* to;
 	size_t size;
 	os_sem_t *semaphore;
-	size_t index;
 	size_t block_size;
 	size_t block_size_rem;
 	struct memcpy_thread_work *next;
@@ -48,6 +47,7 @@ struct memcpy_environment {
 	struct memcpy_thread_work *work_queue;
 	pthread_mutex_t work_queue_mutex;
 	pthread_cond_t work_queue_cond;
+	int running;
 };
 
 static void *start_memcpy_thread(void* context)
@@ -62,12 +62,16 @@ static void *start_memcpy_thread(void* context)
 	for (;;) {
 		pthread_mutex_lock(&env->work_queue_mutex);
 
-		while (!env->work_queue) {
+		while (!env->work_queue && env->running) {
 			pthread_cond_wait(&env->work_queue_cond, &env->work_queue_mutex);
 		}
 
-		work = env->work_queue;
+		if (!env->running) {
+			pthread_mutex_unlock(&env->work_queue_mutex);
+			break;
+		}
 
+		work = env->work_queue;
 		from = work->from;
 		to = work->to;
 		size = work->block_size + work->block_size_rem;
@@ -77,7 +81,6 @@ static void *start_memcpy_thread(void* context)
 			work->from = ((uint8_t*)work->from) + size;
 			work->to = ((uint8_t*)work->to) + size;
 			work->size -= size;
-			work->index++;
 		}
 		else {
 			if (env->work_queue->next != NULL) {
@@ -94,13 +97,15 @@ static void *start_memcpy_thread(void* context)
 		/* Notify the calling thread that this thread is done working */
 		os_sem_post(work->semaphore);
 	}
+
+	return 0;
 }
 
 /* Not thread safe but only needs to be called once for all threads */
 struct memcpy_environment *init_threaded_memcpy_pool(int threads)
 {
 	struct memcpy_environment *env =
-		bzalloc(sizeof(struct memcpy_environment));
+		bmalloc(sizeof(struct memcpy_environment));
 
 	/* TODO: Determine system physical core count at runtime. */
 	if (!threads)
@@ -109,6 +114,7 @@ struct memcpy_environment *init_threaded_memcpy_pool(int threads)
 		env->thread_count = threads;
 
 	env->work_queue = NULL;
+	env->running = true;
 	pthread_cond_init(&env->work_queue_cond, NULL);
 	pthread_mutex_init(&env->work_queue_mutex, NULL);
 
@@ -121,6 +127,23 @@ struct memcpy_environment *init_threaded_memcpy_pool(int threads)
 	}
 
 	return env;
+}
+
+void destroy_threaded_memcpy_pool(struct memcpy_environment *env)
+{
+	pthread_mutex_lock(&env->work_queue_mutex);
+	env->running = false;
+	pthread_mutex_unlock(&env->work_queue_mutex);
+
+	for (int i = 0; i < env->thread_count; ++i) {
+		/* Since we don't know which thread wakes up, wake them all up. */
+		pthread_cond_broadcast(&env->work_queue_cond);
+		pthread_join(env->threads[i], NULL);
+	}
+
+	pthread_cond_destroy(&env->work_queue_cond);
+	pthread_mutex_destroy(&env->work_queue_mutex);
+	bfree(env);
 }
 
 void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy_environment *env)
@@ -152,7 +175,8 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 		iter->next = &work;
 	}
 
-	pthread_cond_signal(&env->work_queue_cond);
+	for (int i = 0; i < blocks; ++i)
+		pthread_cond_signal(&env->work_queue_cond);
 
 	pthread_mutex_unlock(&env->work_queue_mutex);
 
@@ -160,4 +184,6 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 	for (int i = 0; i < blocks; ++i) {
 		os_sem_wait(finish_signal);
 	}
+
+	os_sem_destroy(finish_signal);
 }
