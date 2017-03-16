@@ -64,7 +64,7 @@ char *find_libobs_data_file(const char *file)
 	if (check_path(file, "data/libobs/", &path))
 		return path.array;
 
-	if (check_path(file, "../../data/libobs/", &path))
+	if (check_path(file, OBS_DATA_PATH "/libobs/", &path))
 		return path.array;
 
 	dstr_free(&path);
