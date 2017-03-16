@@ -19,6 +19,12 @@
 #include "threading.h"
 #include "bmem.h"
 
+#if defined(_WIN32)
+	#include <Windows.h>
+#elif defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+	#include <unistd.h>
+#endif
+
 /* Prevents WinAPI redefinition down the road. */
 #define NOMINMAX
 
@@ -26,7 +32,7 @@
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 
 /* TODO: Will need adjustment */
-#define MAX_THREAD_COUNT 8
+#define MAX_THREAD_COUNT 32
 
 struct memcpy_thread_work {
 	void* from;
@@ -49,6 +55,29 @@ struct memcpy_environment {
 	pthread_cond_t work_queue_cond;
 	int running;
 };
+
+static unsigned optimal_thread_count()
+{
+	unsigned long result;
+#if defined(_SC_NPROCESSORS_ONLN)
+	result = sysconf(_SC_NPROCESSORS_ONLN);
+	
+	if (result < 0)
+		return MAX_THREAD_COUNT;
+#elif defined(_WIN32)
+	SYSTEM_INFO info;
+	GetSystemInfo(&info);
+	result = info.dwNumberOfProcessors;
+#else
+	result = MAX_THREAD_COUNT / 8;
+#endif
+	result /= 2;
+
+	if (result > MAX_THREAD_COUNT)
+		result = MAX_THREAD_COUNT;
+
+	return result;
+}
 
 static void *start_memcpy_thread(void* context)
 {
@@ -109,7 +138,7 @@ struct memcpy_environment *init_threaded_memcpy_pool(int threads)
 
 	/* TODO: Determine system physical core count at runtime. */
 	if (!threads)
-		env->thread_count = MAX_THREAD_COUNT;
+		env->thread_count = optimal_thread_count();
 	else
 		env->thread_count = threads;
 
