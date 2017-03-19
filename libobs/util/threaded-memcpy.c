@@ -48,9 +48,17 @@ struct memcpy_thread_work {
 const size_t block_size = 64 * 1024;
 
 struct memcpy_environment {
-	int thread_count;
+	/* We don't know the size of pthread_t
+	 * but it's usually represented by a 
+	 * pointer or an integer. 
+	 
+	 * MAX_THREAD_COUNT should be a multiple of 8 
+	 * so threads don't thrash the cache alignment 
+	 * of the rest of the structure. */
 	pthread_t threads[MAX_THREAD_COUNT];
+	int thread_count;
 	struct memcpy_thread_work *work_queue;
+	struct memcpy_thread_work *work_queue_last;
 	pthread_mutex_t work_queue_mutex;
 	pthread_cond_t work_queue_cond;
 	int running;
@@ -63,7 +71,7 @@ static unsigned optimal_thread_count()
 	result = sysconf(_SC_NPROCESSORS_ONLN);
 	
 	if (result < 0)
-		return MAX_THREAD_COUNT;
+		return 1;
 #elif defined(_WIN32)
 	SYSTEM_INFO info;
 	GetSystemInfo(&info);
@@ -72,6 +80,8 @@ static unsigned optimal_thread_count()
 	result = MAX_THREAD_COUNT / 8;
 #endif
 	result /= 2;
+
+	if (result == 0) return 1;
 
 	if (result > MAX_THREAD_COUNT)
 		result = MAX_THREAD_COUNT;
@@ -116,6 +126,7 @@ static void *start_memcpy_thread(void* context)
 				env->work_queue = env->work_queue->next;
 			} else {
 				env->work_queue = NULL;
+				env->work_queue_last = NULL;
 			}
 		}
 
@@ -147,12 +158,29 @@ struct memcpy_environment *init_threaded_memcpy_pool(int threads)
 	pthread_cond_init(&env->work_queue_cond, NULL);
 	pthread_mutex_init(&env->work_queue_mutex, NULL);
 
+	if (env->thread_count == 1)
+		return env;
+
 	for (int i = 0; i < env->thread_count; ++i) {
-		pthread_create(
+		int error = pthread_create(
 			&env->threads[i],
 			NULL,
 			start_memcpy_thread,
 			(void*)env);
+
+		if (error) {
+			/* This can only really happen in two cases:
+			 * The first one being permissions for setting policy. 
+			 * The second being lack of resources. 
+			 * We can't really help either case so just fallback to
+			 * a single thread */
+			for (int k = 0; k < i; ++k) {
+				pthread_cancel(env->threads[k]);
+			}
+
+			env->thread_count = 1;
+			return env;
+		}
 	}
 
 	return env;
@@ -184,6 +212,11 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 	size_t blocks =
 		min(max(size, block_size) / block_size, env->thread_count);
 
+	if (env->thread_count == 1) {
+		memcpy(destination, source, size);
+		return;
+	}
+
 	os_sem_init(&finish_signal, 0);
 
 	work.block_size = size / blocks;
@@ -198,10 +231,10 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 
 	if (env->work_queue == NULL) {
 		env->work_queue = &work;
+		env->work_queue_last = &work;
 	} else {
-		struct memcpy_thread_work *iter = env->work_queue;
-		while (iter->next) iter = iter->next;
-		iter->next = &work;
+		env->work_queue_last->next = &work;
+		env->work_queue_last = &work;
 	}
 
 	for (int i = 0; i < blocks; ++i)
