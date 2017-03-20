@@ -41,6 +41,7 @@ struct memcpy_thread_work {
 	os_sem_t *semaphore;
 	size_t block_size;
 	struct memcpy_thread_work *next;
+	struct memcpy_thread_work *prev;
 };
 
 /* Static global data */
@@ -123,6 +124,7 @@ static void *start_memcpy_thread(void* context)
 		else {
 			if (env->work_queue->next != NULL) {
 				env->work_queue = env->work_queue->next;
+				env->work_queue->prev = NULL;
 			} else {
 				env->work_queue = NULL;
 				env->work_queue_last = NULL;
@@ -146,7 +148,6 @@ struct memcpy_environment *init_threaded_memcpy_pool(int threads)
 	struct memcpy_environment *env =
 		bmalloc(sizeof(struct memcpy_environment));
 
-	/* TODO: Determine system physical core count at runtime. */
 	if (!threads)
 		env->thread_count = optimal_thread_count();
 	else
@@ -226,6 +227,7 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 	work.from = (uint8_t*)source + block_size_rem;
 	work.semaphore = finish_signal;
 	work.next = NULL;
+	work.prev = NULL;
 
 	pthread_mutex_lock(&env->work_queue_mutex);
 
@@ -233,7 +235,8 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 		env->work_queue = &work;
 		env->work_queue_last = &work;
 	} else {
-		env->work_queue_last->next = &work;
+		work.prev = env->work_queue_last;
+		work.prev->next = &work;
 		env->work_queue_last = &work;
 	}
 
@@ -249,6 +252,13 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 	for (int i = 0; i < blocks; ++i) {
 		os_sem_wait(finish_signal);
 	}
+
+	pthread_mutex_lock(&env->work_queue_mutex);
+
+	if (work.prev)
+		work.prev->next = work.next;
+
+	pthread_mutex_unlock(&env->work_queue_mutex);
 
 	os_sem_destroy(finish_signal);
 }
