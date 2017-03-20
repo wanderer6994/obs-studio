@@ -40,7 +40,6 @@ struct memcpy_thread_work {
 	size_t size;
 	os_sem_t *semaphore;
 	size_t block_size;
-	size_t block_size_rem;
 	struct memcpy_thread_work *next;
 };
 
@@ -113,7 +112,7 @@ static void *start_memcpy_thread(void* context)
 		work = env->work_queue;
 		from = work->from;
 		to = work->to;
-		size = work->block_size + work->block_size_rem;
+		size = work->block_size;
 		semaphore = work->semaphore;
 
 		if (work->size > size) {
@@ -205,25 +204,26 @@ void destroy_threaded_memcpy_pool(struct memcpy_environment *env)
 
 void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy_environment *env)
 {
-	struct memcpy_thread_work work;
+	if (env->thread_count == 1 ||
+		size <= block_size * 2) 
+	{
+		memcpy(destination, source, size);
+		return;
+	}
 
+	struct memcpy_thread_work work;
 	os_sem_t *finish_signal;
 
 	size_t blocks =
 		min(max(size, block_size) / block_size, env->thread_count);
 
-	if (env->thread_count == 1) {
-		memcpy(destination, source, size);
-		return;
-	}
-
 	os_sem_init(&finish_signal, 0);
 
 	work.block_size = size / blocks;
-	work.block_size_rem = size - (work.block_size * blocks);
-	work.size = size;
-	work.to = (uint8_t*)destination;
-	work.from = (uint8_t*)source;
+	size_t block_size_rem = size - (work.block_size * blocks);
+	work.size = size - block_size_rem;
+	work.to = (uint8_t*)destination + block_size_rem;
+	work.from = (uint8_t*)source + block_size_rem;
 	work.semaphore = finish_signal;
 	work.next = NULL;
 
@@ -241,6 +241,9 @@ void threaded_memcpy(void *destination, void *source, size_t size, struct memcpy
 		pthread_cond_signal(&env->work_queue_cond);
 
 	pthread_mutex_unlock(&env->work_queue_mutex);
+
+	/* Copy the remainder while we wait */
+	memcpy(destination, source, block_size_rem);
 
 	/* Wait for a signal from each job */
 	for (int i = 0; i < blocks; ++i) {
