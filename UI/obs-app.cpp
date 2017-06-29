@@ -164,6 +164,7 @@ QObject *CreateShortcutFilter()
 			case Qt::Key_Return:
 				if (dialog && pressed)
 					return false;
+				/* Falls through. */
 			default:
 				hotkey.key = obs_key_from_virtual_key(
 					event->nativeVirtualKey());
@@ -1835,6 +1836,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef _WIN32
+	SetErrorMode(SEM_FAILCRITICALERRORS);
 	load_debug_privilege();
 	base_set_crash_handler(main_crash_handler, nullptr);
 #endif

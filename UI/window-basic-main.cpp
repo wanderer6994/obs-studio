@@ -115,6 +115,11 @@ static void AddExtraModulePaths()
 	string path = (char*)base_module_dir;
 #if defined(__APPLE__)
 	obs_add_module_path((path + "/bin").c_str(), (path + "/data").c_str());
+
+	BPtr<char> config_bin = os_get_config_path_ptr("obs-studio/plugins/%module%/bin");
+	BPtr<char> config_data = os_get_config_path_ptr("obs-studio/plugins/%module%/data");
+	obs_add_module_path(config_bin, config_data);
+
 #elif ARCH_BITS == 64
 	obs_add_module_path((path + "/bin/64bit").c_str(),
 			(path + "/data").c_str());
@@ -1458,6 +1463,8 @@ void OBSBasic::OBSInit()
 
 	if (config_get_bool(basicConfig, "General", "OpenStatsOnStartup"))
 		on_stats_triggered();
+
+	OBSBasicStats::InitializeValues();
 }
 
 void OBSBasic::InitHotkeys()
@@ -2767,6 +2774,8 @@ int OBSBasic::ResetVideo()
 			ResizeProgram(ovi.base_width, ovi.base_height);
 	}
 
+	OBSBasicStats::InitializeValues();
+
 	return ret;
 }
 
@@ -2792,26 +2801,30 @@ bool OBSBasic::ResetAudio()
 void OBSBasic::ResetAudioDevice(const char *sourceId, const char *deviceId,
 		const char *deviceDesc, int channel)
 {
+	bool disable = deviceId && strcmp(deviceId, "disabled") == 0;
 	obs_source_t *source;
 	obs_data_t *settings;
-	bool same = false;
 
 	source = obs_get_output_source(channel);
 	if (source) {
-		settings = obs_source_get_settings(source);
-		const char *curId = obs_data_get_string(settings, "device_id");
+		if (disable) {
+			obs_set_output_source(channel, nullptr);
+		} else {
+			settings = obs_source_get_settings(source);
+			const char *oldId = obs_data_get_string(settings,
+					"device_id");
+			if (strcmp(oldId, deviceId) != 0) {
+				obs_data_set_string(settings, "device_id",
+						deviceId);
+				obs_source_update(source, settings);
+			}
+			obs_data_release(settings);
+		}
 
-		same = (strcmp(curId, deviceId) == 0);
-
-		obs_data_release(settings);
 		obs_source_release(source);
-	}
 
-	if (!same)
-		obs_set_output_source(channel, nullptr);
-
-	if (!same && strcmp(deviceId, "disabled") != 0) {
-		obs_data_t *settings = obs_data_create();
+	} else if (!disable) {
+		settings = obs_data_create();
 		obs_data_set_string(settings, "device_id", deviceId);
 		source = obs_source_create(sourceId, deviceDesc, settings,
 				nullptr);
