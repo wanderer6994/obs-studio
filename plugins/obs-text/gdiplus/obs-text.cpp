@@ -36,7 +36,7 @@ using namespace Gdiplus;
 #define MAX_AREA (4096LL * 4096LL)
 
 /* ------------------------------------------------------------------------- */
-
+#define S_CUSTOM_FONT                   "custom_font"
 #define S_FONT                          "font"
 #define S_USE_FILE                      "read_from_file"
 #define S_FILE                          "file"
@@ -191,6 +191,7 @@ struct TextSource {
 	HDCObj hdc;
 	Graphics graphics;
 
+	PrivateFontCollection *custom_fonts = nullptr;
 	HFONTObj hfont;
 	unique_ptr<Font> font;
 
@@ -251,6 +252,7 @@ struct TextSource {
 	}
 
 	void UpdateFont();
+	void UpdateCustomFont(const wchar_t *font_path);
 	void GetStringFormat(StringFormat &format);
 	void RemoveNewlinePadding(const StringFormat &format, RectF &box);
 	void CalculateTextSizes(const StringFormat &format,
@@ -633,8 +635,46 @@ void TextSource::LoadFileText()
 
 #define obs_data_get_uint32 (uint32_t)obs_data_get_int
 
+void TextSource::UpdateCustomFont(const wchar_t *font_path) 
+{
+	INT family_count;
+	INT family_found;
+	WCHAR face_name[LF_FACESIZE];
+	FontFamily *pFamilies;
+
+	/* Reset custom font collection 
+	 * FIXME: The user should be able to 
+	 * add more than one custom font for
+	 * querying. */
+	delete custom_fonts;
+	custom_fonts = new PrivateFontCollection;
+
+	custom_fonts->AddFontFile(font_path);
+	family_count = custom_fonts->GetFamilyCount();
+	pFamilies = new FontFamily[1];
+
+	hfont = nullptr;
+	font.reset(nullptr);
+
+	custom_fonts->GetFamilies(1, pFamilies, &family_found);
+	pFamilies[0].GetFamilyName(face_name, LANG_NEUTRAL);
+
+	INT style = 
+		underline ? FontStyleUnderline : 0 |
+		strikeout ? FontStyleStrikeout : 0 |
+		italic    ? FontStyleItalic    : 0 |
+		bold      ? FontStyleBold      : 0 ;
+
+	font.reset(
+		new Font(
+			face_name, face_size, style,
+			UnitPoint, custom_fonts)
+	);
+}
+
 inline void TextSource::Update(obs_data_t *s)
 {
+	const char *custom_font_str = obs_data_get_string(s, S_CUSTOM_FONT);
 	const char *new_text   = obs_data_get_string(s, S_TEXT);
 	obs_data_t *font_obj   = obs_data_get_obj(s, S_FONT);
 	const char *align_str  = obs_data_get_string(s, S_ALIGN);
@@ -671,23 +711,21 @@ inline void TextSource::Update(obs_data_t *s)
 	uint32_t new_bk_opacity = obs_data_get_uint32(s, S_BKOPACITY);
 
 	/* ----------------------------- */
-
 	wstring new_face = to_wide(font_face);
 
-	if (new_face      != face      ||
-	    face_size     != font_size ||
-	    new_bold      != bold      ||
-	    new_italic    != italic    ||
-	    new_underline != underline ||
-	    new_strikeout != strikeout) {
+	face = new_face;
+	face_size = font_size;
+	bold = new_bold;
+	italic = new_italic;
+	underline = new_underline;
+	strikeout = new_strikeout;
 
-		face = new_face;
-		face_size = font_size;
-		bold = new_bold;
-		italic = new_italic;
-		underline = new_underline;
-		strikeout = new_strikeout;
+	if (custom_font_str) {
+		wstring wstrFontPath = to_wide(custom_font_str);
 
+		UpdateCustomFont(wstrFontPath.c_str());
+	}
+	else {
 		UpdateFont();
 	}
 
