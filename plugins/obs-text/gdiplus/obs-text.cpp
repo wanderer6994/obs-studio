@@ -712,6 +712,7 @@ inline void TextSource::Update(obs_data_t *s)
 
 	/* ----------------------------- */
 	wstring new_face = to_wide(font_face);
+	wstring wstr_font_path = to_wide(custom_font_str);
 
 	face = new_face;
 	face_size = font_size;
@@ -720,10 +721,9 @@ inline void TextSource::Update(obs_data_t *s)
 	underline = new_underline;
 	strikeout = new_strikeout;
 
-	if (custom_font_str) {
-		wstring wstrFontPath = to_wide(custom_font_str);
+	if (!wstr_font_path.empty()) {
 
-		UpdateCustomFont(wstrFontPath.c_str());
+		UpdateCustomFont(wstr_font_path.c_str());
 	}
 	else {
 		UpdateFont();
