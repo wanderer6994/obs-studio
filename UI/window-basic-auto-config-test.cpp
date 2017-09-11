@@ -157,6 +157,8 @@ static inline void string_depad_key(string &key)
 	}
 }
 
+const char *FindAudioEncoderFromCodec(const char *type);
+
 void AutoConfigTestPage::TestBandwidthThread()
 {
 	bool connected = false;
@@ -189,9 +191,6 @@ void AutoConfigTestPage::TestBandwidthThread()
 			"test_aac", nullptr, 0, nullptr);
 	OBSService service = obs_service_create(serverType,
 			"test_service", nullptr, nullptr);
-	OBSOutput output = obs_output_create("rtmp_output",
-			"test_stream", nullptr, nullptr);
-	obs_output_release(output);
 	obs_encoder_release(vencoder);
 	obs_encoder_release(aencoder);
 	obs_service_release(service);
@@ -246,24 +245,53 @@ void AutoConfigTestPage::TestBandwidthThread()
 	else
 		GetServers(servers);
 
-	/* just use the first server if it only has one alternate server */
-	if (servers.size() < 3)
+	/* just use the first server if it only has one alternate server,
+	 * or if using Mixer due to its "auto" server */
+	if (servers.size() < 3 || wiz->serviceName == "Mixer.com - FTL") {
 		servers.resize(1);
 
+	} else if (wiz->service == AutoConfig::Service::Twitch &&
+	           wiz->twitchAuto) {
+		/* if using Twitch and "Auto" is available, test 3 closest
+		 * server */
+		servers.erase(servers.begin() + 1);
+		servers.resize(3);
+	}
+
 	/* -----------------------------------*/
-	/* apply settings                     */
+	/* apply service settings             */
 
 	obs_service_update(service, service_settings);
 	obs_service_apply_encoder_settings(service,
 			vencoder_settings, aencoder_settings);
 
-	obs_encoder_update(vencoder, vencoder_settings);
-	obs_encoder_update(aencoder, aencoder_settings);
+	/* -----------------------------------*/
+	/* create output                      */
+
+	const char *output_type = obs_service_get_output_type(service);
+	if (!output_type)
+		output_type = "rtmp_output";
+
+	OBSOutput output = obs_output_create(output_type,
+			"test_stream", nullptr, nullptr);
+	obs_output_release(output);
 	obs_output_update(output, output_settings);
+
+	const char *audio_codec =
+		obs_output_get_supported_audio_codecs(output);
+
+	if (strcmp(audio_codec, "aac") != 0) {
+		const char *id = FindAudioEncoderFromCodec(audio_codec);
+		aencoder = obs_audio_encoder_create(id,
+				"test_audio", nullptr, 0, nullptr);
+		obs_encoder_release(aencoder);
+	}
 
 	/* -----------------------------------*/
 	/* connect encoders/services/outputs  */
 
+	obs_encoder_update(vencoder, vencoder_settings);
+	obs_encoder_update(aencoder, aencoder_settings);
 	obs_encoder_set_video(vencoder, obs_get_video());
 	obs_encoder_set_audio(aencoder, obs_get_audio());
 
