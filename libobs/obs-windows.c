@@ -61,6 +61,18 @@ char *find_libobs_data_file(const char *file)
 	struct dstr path;
 	dstr_init(&path);
 
+	const char *env_path = getenv("OBS_DATA_PATH");
+
+	if (env_path != NULL) {
+		struct dstr data_path;
+		dstr_init_copy(&data_path, env_path);
+		dstr_cat(&data_path, "/libobs/");
+
+		if (check_path(file, data_path.array, &path)) {
+			return path.array;
+		}
+	}
+
 	if (check_path(file, "data/libobs/", &path))
 		return path.array;
 
