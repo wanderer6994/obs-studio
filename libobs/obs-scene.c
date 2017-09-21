@@ -390,8 +390,8 @@ static void update_item_transform(struct obs_scene_item *item)
 
 static inline bool source_size_changed(struct obs_scene_item *item)
 {
-	uint32_t width  = obs_source_get_width(item->source);
-	uint32_t height = obs_source_get_height(item->source);
+	uint32_t width  = calc_cx(item, obs_source_get_width(item->source));
+	uint32_t height = calc_cy(item, obs_source_get_height(item->source));
 
 	return item->last_width != width || item->last_height != height;
 }
