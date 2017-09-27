@@ -208,32 +208,16 @@ struct DShowInput {
 		if (!thread)
 			throw "Failed to create thread";
 
-		vector<VideoDevice> devices;
+		deactivateWhenNotShowing =
+			obs_data_get_bool(settings, DEACTIVATE_WNS);
 
-		/* Default to the first enumerated device */
-		Device::EnumVideoDevices(devices);
+		if (obs_data_get_bool(settings, "active")) {
+			bool showing = obs_source_showing(source);
+			if (!deactivateWhenNotShowing || showing)
+				QueueAction(Action::Activate);
 
-		if (devices.size() > 0) {
-			auto &device = devices[0];
-			DStr name, path, device_id;
-
-			dstr_from_wcs(name, device.name.c_str());
-			dstr_from_wcs(path, device.path.c_str());
-
-			encode_dstr(path);
-
-			dstr_copy_dstr(device_id, name);
-			encode_dstr(device_id);
-			dstr_cat(device_id, ":");
-			dstr_cat_dstr(device_id, path);
-
-			obs_data_set_string(settings, VIDEO_DEVICE_ID, device_id);
+			active = true;
 		}
-
-		QueueAction(Action::Activate);
-		active = true;
-		deactivateWhenNotShowing = false;
-
 	}
 
 	inline ~DShowInput()
