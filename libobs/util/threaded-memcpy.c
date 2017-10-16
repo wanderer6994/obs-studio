@@ -192,12 +192,17 @@ void destroy_threaded_memcpy_pool(struct memcpy_environment *env)
 	env->running = false;
 	pthread_mutex_unlock(&env->work_queue_mutex);
 
+	if (env->thread_count == 1) {
+		goto finish;
+	}
+
 	for (int i = 0; i < env->thread_count; ++i) {
 		/* Since we don't know which thread wakes up, wake them all up. */
 		pthread_cond_broadcast(&env->work_queue_cond);
 		pthread_join(env->threads[i], NULL);
 	}
 
+finish:
 	pthread_cond_destroy(&env->work_queue_cond);
 	pthread_mutex_destroy(&env->work_queue_mutex);
 	bfree(env);
