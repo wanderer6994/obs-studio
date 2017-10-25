@@ -957,6 +957,10 @@ EXPORT void obs_source_set_monitoring_type(obs_source_t *source,
 EXPORT enum obs_monitoring_type obs_source_get_monitoring_type(
 		const obs_source_t *source);
 
+/** Gets private front-end settings data.  This data is saved/loaded
+ * automatically.  Returns an incremented reference. */
+EXPORT obs_data_t *obs_source_get_private_settings(obs_source_t *item);
+
 /* ------------------------------------------------------------------------- */
 /* Functions used by sources */
 
@@ -1113,6 +1117,12 @@ EXPORT void obs_source_get_audio_mix(const obs_source_t *source,
 EXPORT void obs_source_set_async_unbuffered(obs_source_t *source,
 		bool unbuffered);
 EXPORT bool obs_source_async_unbuffered(const obs_source_t *source);
+
+/** Used to decouple audio from video so that audio doesn't attempt to sync up
+ * with video.  I.E. Audio acts independently.  Only works when in unbuffered
+ * mode. */
+EXPORT void obs_source_set_async_decoupled(obs_source_t *source, bool decouple);
+EXPORT bool obs_source_async_decoupled(const obs_source_t *source);
 
 /* ------------------------------------------------------------------------- */
 /* Transition-specific functions */
@@ -1337,6 +1347,10 @@ EXPORT enum obs_scale_type obs_sceneitem_get_scale_filter(
 
 EXPORT void obs_sceneitem_defer_update_begin(obs_sceneitem_t *item);
 EXPORT void obs_sceneitem_defer_update_end(obs_sceneitem_t *item);
+
+/** Gets private front-end settings data.  This data is saved/loaded
+ * automatically.  Returns an incremented reference. */
+EXPORT obs_data_t *obs_sceneitem_get_private_settings(obs_sceneitem_t *item);
 
 
 /* ------------------------------------------------------------------------- */

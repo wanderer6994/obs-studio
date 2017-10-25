@@ -15,6 +15,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
+#include <time.h>
+#include <stdlib.h>
+
 #include "obs.h"
 #include "obs-internal.h"
 #include "util/profiler.h"
@@ -305,7 +308,7 @@ static inline void stage_output_texture(struct obs_core_video *video,
 		texture_ready = video->textures_converted[prev_texture];
 	} else {
 		texture = video->output_textures[prev_texture];
-		texture_ready = video->output_textures[prev_texture];
+		texture_ready = video->textures_output[prev_texture];
 	}
 
 	unmap_last_surface(video);
@@ -603,6 +606,8 @@ void *obs_video_thread(void *param)
 		profile_store_name(obs_get_profiler_name_store(),
 			"obs_video_thread(%g"NBSP"ms)", interval / 1000000.);
 	profile_register_root(video_thread_name, interval);
+
+	srand((unsigned int)time(NULL));
 
 	while (!video_output_stopped(obs->video.video)) {
 		uint64_t frame_start = os_gettime_ns();

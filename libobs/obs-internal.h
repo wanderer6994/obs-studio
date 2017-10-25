@@ -611,6 +611,7 @@ struct obs_source {
 	bool                            async_active;
 	bool                            async_update_texture;
 	bool                            async_unbuffered;
+	bool                            async_decoupled;
 	struct obs_source_frame         *async_preload_frame;
 	DARRAY(struct async_frame)      async_cache;
 	DARRAY(struct obs_source_frame*)async_frames;
@@ -681,6 +682,8 @@ struct obs_source {
 
 	struct audio_monitor            *monitor;
 	enum obs_monitoring_type        monitoring_type;
+
+	obs_data_t                      *private_settings;
 };
 
 extern const struct obs_source_info *get_source_info(const char *id);
