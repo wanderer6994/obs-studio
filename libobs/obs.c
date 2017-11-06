@@ -798,7 +798,11 @@ bool obs_startup(const char *locale, const char *module_config_path,
 	}
 
 #ifdef _WIN32
-	initialize_crash_handler();
+	/* The frontend should handle crash handling. 
+	 * At the very least, the frontend should be able 
+	 * to explicitly turn off this crash handling. 
+	 * FIXME: Allow variable to control the crash handler. */
+	/* initialize_crash_handler(); */
 	initialize_com();
 #endif
 
