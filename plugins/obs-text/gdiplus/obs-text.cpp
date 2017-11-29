@@ -669,7 +669,7 @@ void TextSource::UpdateCustomFont(const wchar_t *font_path)
 	font.reset(
 		new Font(
 			face_name, face_size, style,
-			UnitPoint, custom_fonts)
+			UnitPixel, custom_fonts)
 	);
 }
 
