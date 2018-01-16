@@ -162,6 +162,7 @@ struct TextSource {
 	HDC hdc;
 	Graphics graphics;
 
+	bool custom_font = false;
 	PrivateFontCollection private_fonts;
 	InstalledFontCollection installed_fonts;
 
@@ -262,8 +263,10 @@ void TextSource::UpdateCustomFont(const wchar_t *font_path)
 
 void TextSource::UpdateFont()
 {
+	/* We don't spawn a font from this, we use it for metainfo */
 	family.reset(new FontFamily(face.c_str(), &installed_fonts));
 }
+
 
 void TextSource::GetStringFormat(StringFormat &format)
 {
@@ -482,17 +485,42 @@ void TextSource::RenderText()
 	RectF box;
 	SIZE size;
 
+	std::unique_ptr<Font> font;
+	HFONT hfont = NULL;
+
 	INT style =
 		(underline ? FontStyleUnderline : 0) |
 		(strikeout ? FontStyleStrikeout : 0) |
 		(italic ? FontStyleItalic : 0) |
 		(bold ? FontStyleBold : 0);
 
-	Font font(family.get(), REAL(face_size), style, UnitPixel);
+	/* This has gotten a bit messy. FIXME */
+	if (custom_font)
+		font.reset(new Font(family.get(), REAL(face_size), style, UnitPixel));
+	else {
+		/* I realize that we're not passing emSize here, unlike
+		 * above. Unfortunately, since we passed cell height 
+		 * before, we still need to do so now for compatibility */
+		LOGFONT lf = { 0 };
+		lf.lfHeight = face_size;
+		lf.lfWeight = bold ? FW_BOLD : FW_DONTCARE;
+		lf.lfItalic = italic;
+		lf.lfUnderline = underline;
+		lf.lfStrikeOut = strikeout;
+		lf.lfQuality = ANTIALIASED_QUALITY;
+		lf.lfCharSet = DEFAULT_CHARSET;
 
-	obs_enter_graphics();
+		if (!face.empty()) {
+			wcscpy(lf.lfFaceName, face.c_str());
+			hfont = CreateFontIndirectW(&lf);
+		}
+
+		if (hfont)
+			font.reset(new Font(hdc, hfont));
+	}
+
 	GetStringFormat(format);
-	CalculateTextSizes(&font, format, box, size);
+	CalculateTextSizes(font.get(), format, box, size);
 
 	unique_ptr<uint8_t> bits(new uint8_t[size.cx * size.cy * 4]);
 	Bitmap bitmap(size.cx, size.cy, 4 * size.cx, PixelFormat32bppARGB,
@@ -531,19 +559,21 @@ void TextSource::RenderText()
 			GraphicsPath path;
 
 			stat = path.AddString(text.c_str(), (int)text.size(),
-					family.get(), style, face_size, box, &format);
+					family.get(), font->GetStyle(), font->GetSize(), box, &format);
 			warn_stat("path.AddString");
 
 			RenderOutlineText(graphics_bitmap, path, brush);
 		} else {
 			stat = graphics_bitmap.DrawString(text.c_str(),
-					(int)text.size(), &font,
+					(int)text.size(), font.get(),
 					box, &format, &brush);
 			warn_stat("graphics_bitmap.DrawString");
 		}
 	}
 
 	if (!tex || (LONG)cx != size.cx || (LONG)cy != size.cy) {
+		obs_enter_graphics();
+
 		if (tex)
 			gs_texture_destroy(tex);
 
@@ -551,14 +581,18 @@ void TextSource::RenderText()
 		tex = gs_texture_create(size.cx, size.cy, GS_BGRA, 1, &data,
 				GS_DYNAMIC);
 
+		obs_leave_graphics();
+
 		cx = (uint32_t)size.cx;
 		cy = (uint32_t)size.cy;
 
 	} else if (tex) {
+		obs_enter_graphics();
 		gs_texture_set_image(tex, bits.get(), size.cx * 4, false);
+		obs_leave_graphics();
 	}
 
-	obs_leave_graphics();
+	DeleteObject(hfont);
 }
 
 const char *TextSource::GetMainString(const char *str)
@@ -657,9 +691,11 @@ inline void TextSource::Update(obs_data_t *s)
 	}
 
 	if (strlen(custom_font_str) != 0) {
+		custom_font = true;
 		UpdateCustomFont(to_wide(custom_font_str).c_str());
-	} else if (has_changed) {
+	} else {
 		UpdateFont();
+		custom_font = false;
 	}
 
 	/* ----------------------------- */
