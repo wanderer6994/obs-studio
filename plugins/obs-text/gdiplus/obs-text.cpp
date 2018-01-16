@@ -673,22 +673,12 @@ inline void TextSource::Update(obs_data_t *s)
 	/* ----------------------------- */
 	wstring new_face = to_wide(font_face);
 
-	bool has_changed = 
-	    new_face      != face      ||
-	    face_size     != font_size ||
-	    new_bold      != bold      ||
-	    new_italic    != italic    ||
-	    new_underline != underline ||
-	    new_strikeout != strikeout;
-
-	if (has_changed) {
-		face = new_face;
-		face_size = font_size;
-		bold = new_bold;
-		italic = new_italic;
-		underline = new_underline;
-		strikeout = new_strikeout;
-	}
+	face = new_face;
+	face_size = font_size;
+	bold = new_bold;
+	italic = new_italic;
+	underline = new_underline;
+	strikeout = new_strikeout;
 
 	if (strlen(custom_font_str) != 0) {
 		custom_font = true;
