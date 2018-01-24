@@ -5,20 +5,20 @@ install:
   - git submodule update --init --recursive
   - if exist dependencies2015.zip (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -z dependencies2015.zip) else (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -C -)
   - 7z x dependencies2015.zip -odependencies2015
-  - set CmakeGenerator="Visual Studio 14 2015"
-  - set DepsPath32="%APPVEYOR_BUILD_FOLDER%\dependencies2015\win32"
-  - set DepsPath64="%APPVEYOR_BUILD_FOLDER%\dependencies2015\win64"
-  - set BuildPath32="%APPVEYOR_BUILD_FOLDER%\build32"
-  - set BuildPath64="%APPVEYOR_BUILD_FOLDER%\build64"
-  - set InstallPath="%APPVEYOR_BUILD_FOLDER%\install"
-  - set build_config="RelWithDebInfo"
+  - set CmakeGenerator=Visual Studio 14 2015
+  - set DepsPath32=%APPVEYOR_BUILD_FOLDER%\dependencies2015\win32
+  - set DepsPath64=%APPVEYOR_BUILD_FOLDER%\dependencies2015\win64
+  - set BuildPath32=%APPVEYOR_BUILD_FOLDER%\build32
+  - set BuildPath64=%APPVEYOR_BUILD_FOLDER%\build64
+  - set InstallPath=%APPVEYOR_BUILD_FOLDER%\install
+  - set build_config=RelWithDebInfo
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d11on12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\dxgi*" "C:\Program Files (x86)\Windows Kits\8.1\Include\shared"
   - mkdir "%BuildPath64%"
   - mkdir "%BuildPath32%"
-  - cmake -G %CmakeGenerator% -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
-  - cmake -G %CmakeGenerator% -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath64" -A x64 -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake -G "%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake -G "%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath64" -A x64 -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
 
 build_script:
   - cmake --build "%BuildPath32%" --target "get-graphics-offsets"
