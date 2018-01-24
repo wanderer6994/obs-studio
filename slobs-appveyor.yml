@@ -2,13 +2,13 @@ environment:
   CURL_VERSION: 7.56.1
 
 environment:
-  - CmakeGenerator: "Visual Studio 14 2015"
-  - DepsPath32: "%APPVEYOR_BUILD_FOLDER%\dependencies2015\win32"
-  - DepsPath64: "%APPVEYOR_BUILD_FOLDER%\dependencies2015\win64"
-  - BuildPath32: "%APPVEYOR_BUILD_FOLDER%\build32"
-  - BuildPath64: "%APPVEYOR_BUILD_FOLDER%\build64"
-  - InstallPath: "%APPVEYOR_BUILD_FOLDER%\install"
-  - build_config: "RelWithDebInfo"
+  - CmakeGenerator: Visual Studio 14 2015
+  - DepsPath32: %APPVEYOR_BUILD_FOLDER%\dependencies2015\win32
+  - DepsPath64: %APPVEYOR_BUILD_FOLDER%\dependencies2015\win64
+  - BuildPath32: %APPVEYOR_BUILD_FOLDER%\build32
+  - BuildPath64: %APPVEYOR_BUILD_FOLDER%\build64
+  - InstallPath: %APPVEYOR_BUILD_FOLDER%\install
+  - build_config: RelWithDebInfo
 
 install:
   - git submodule update --init --recursive
