@@ -1,3 +1,10 @@
+version: 1.0.{build}
+
+shallow_clone: true
+
+build:
+  verbosity: minimal
+
 environment:
   CURL_VERSION: 7.56.1
   CmakeGenerator: Visual Studio 14 2015
