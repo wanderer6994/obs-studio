@@ -10,7 +10,7 @@ install:
   - set DepsPath64=%APPVEYOR_BUILD_FOLDER%\dependencies2015\win64
   - set BuildPath32=%APPVEYOR_BUILD_FOLDER%\build32
   - set BuildPath64=%APPVEYOR_BUILD_FOLDER%\build64
-  - set InstallPath=%APPVEYOR_BUILD_FOLDER%\install
+  - set InstallPath=%APPVEYOR_BUILD_FOLDER%\packed_build
   - set BuildConfig=RelWithDebInfo
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d11on12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
@@ -32,7 +32,7 @@ after_build:
   - cmake --build "%BuildPath64%" --config "%BuildConfig%" --target install
   
 deploy_script:
-  - ps: Push-AppveyorArtifact "install" -FileName "$(git describe).zip"
+  - ps: Push-AppveyorArtifact "%InstallPath%" -FileName "$(git describe).zip"
 
 test: off
 
