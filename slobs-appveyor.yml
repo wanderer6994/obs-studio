@@ -7,17 +7,17 @@ environment:
   BuildPath64: $(APPVEYOR_BUILD_FOLDER)\build64
   InstallPath: $(APPVEYOR_BUILD_FOLDER)\packed_build
   BuildConfig: RelWithDebInfo
-  Artifact: $(git describe).zip
 
 install:
+  - set Artifact=$(git describe).zip
   - git submodule update --init --recursive
   - if exist dependencies2015.zip (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -z dependencies2015.zip) else (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -C -)
   - 7z x dependencies2015.zip -odependencies2015
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d11on12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\dxgi*" "C:\Program Files (x86)\Windows Kits\8.1\Include\shared"
-  - mkdir "%BuildPath64%"
   - mkdir "%BuildPath32%"
+  - mkdir "%BuildPath64%"
 
 build_script:
   - cmake -G"%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32%" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
