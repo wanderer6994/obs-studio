@@ -10,7 +10,6 @@ environment:
 
 install:
   - ps: $env:Artifact="$(git describe).zip"
-  - echo "Artifact File Name - %Artifact%"
   - git submodule update --init --recursive
   - if exist dependencies2015.zip (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -z dependencies2015.zip) else (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -C -)
   - 7z x dependencies2015.zip -odependencies2015
@@ -21,8 +20,8 @@ install:
   - mkdir "%BuildPath64%"
 
 build_script:
-  - cmake -G"%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32%" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
-  - cmake -G"%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath64%" -A x64 -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake -G"%CmakeGenerator%" -T "host=x64" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32%" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake -G"%CmakeGenerator%" -T "host=x64" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath64%" -A x64 -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
   - cmake --build "%BuildPath32%\plugins\win-capture\get-graphics-offsets" --config "%BuildConfig%" --target install
   - cmake --build "%BuildPath32%\plugins\win-capture\graphics-hook" --config "%BuildConfig%" --target install
   - cmake --build "%BuildPath32%\plugins\win-capture\inject-helper" --config "%BuildConfig%" --target install
@@ -32,7 +31,7 @@ after_build:
   - 7z a "%Artifact%" "%InstallPath%\*"
 
 artifacts:
-  - path: "$(Artifact)"
+  - path: $(Artifact)
     name: Packed Artifact
 
 test: off
