@@ -13,7 +13,7 @@ environment:
   BuildConfig: RelWithDebInfo
 
 install:
-  - ps: $env:ReleaseArtifact="Windows-x86_64-.zip"
+  - ps: $env:ReleaseArtifact="windows-x86_64-dev.zip"
   - git submodule update --init --recursive --jobs 2
   - if exist dependencies2015.zip (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -z dependencies2015.zip) else (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -C -)
   - 7z x dependencies2015.zip -odependencies2015
