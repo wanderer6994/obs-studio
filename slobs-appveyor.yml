@@ -20,7 +20,7 @@ install:
   - mkdir "%BuildPath64%"
 
 build_script:
-  - cmd: >-
+  - |-
     cmake ^
     -G"%CmakeGenerator%" ^
     -T"host=x64" ^
@@ -33,7 +33,7 @@ build_script:
     -DBUILD_CAPTIONS=true ^
     -DCOMPILE_D3D12_HOOK=true
     
-  - cmd: >-
+  - |-
     cmake ^
     -G"%CmakeGenerator%" ^
     -T"host=x64" ^
