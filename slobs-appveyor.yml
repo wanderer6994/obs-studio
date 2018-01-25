@@ -10,7 +10,7 @@ environment:
 
 install:
   - ps: $env:Artifact="$(git describe).zip"
-  - ps: Write-Host "Artifact File Name: $env:Artifact"
+  - cmd: ECHO "Artifact File Name: %Artifact%"
   - git submodule update --init --recursive
   - if exist dependencies2015.zip (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -z dependencies2015.zip) else (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -C -)
   - 7z x dependencies2015.zip -odependencies2015
