@@ -7,7 +7,7 @@ environment:
   BuildPath64: $(APPVEYOR_BUILD_FOLDER)\build64
   InstallPath: $(APPVEYOR_BUILD_FOLDER)\packed_build
   BuildConfig: RelWithDebInfo
-  ArtifactPath: $(APPVEYOR_BUILD_FOLDER)\$(git describe).zip
+  Artifact: $(git describe).zip
 
 install:
   - git submodule update --init --recursive
@@ -28,10 +28,10 @@ build_script:
   - cmake --build "%BuildPath64%" --config "%BuildConfig%" --target install
 
 after_build:
-  - 7z a "%ArtifactPath%" "%InstallPath%\*"
+  - 7z a "%Artifact%" "%InstallPath%\*"
 
 artifacts:
-  - path: "$(ArtifactPath)"
+  - path: "$(Artifact)"
     name: Packed Artifact
 
 test: off
