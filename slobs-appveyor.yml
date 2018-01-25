@@ -37,5 +37,5 @@ test: off
 
 cache:
   - dependencies2015.zip
-  - '%BuildPath32%\CMakeCache.txt'
-  - '%BuildPath64%\CMakeCache.txt'
+  - build32\CMakeCache.txt
+  - build64\CMakeCache.txt
