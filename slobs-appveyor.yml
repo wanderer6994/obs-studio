@@ -20,31 +20,31 @@ install:
   - mkdir "%BuildPath64%"
 
 build_script:
-  - cmd: |-
-    cmake ^
-    -G"%CmakeGenerator%" ^
-    -T"host=x64" ^
-    -H"%APPVEYOR_BUILD_FOLDER%" ^
-    -B"%BuildPath32%" ^
-    -DCMAKE_INSTALL_PREFIX="%InstallPath%" ^
-    -DENABLE_UI=false ^
-    -DCOPIED_DEPENDENCIES=false ^
-    -DCOPY_DEPENDENCIES=true ^
-    -DBUILD_CAPTIONS=true ^
+  - ps: |
+    cmake `
+    -G"%CmakeGenerator%" `
+    -T"host=x64"
+    -H"%APPVEYOR_BUILD_FOLDER%"
+    -B"%BuildPath32%"
+    -DCMAKE_INSTALL_PREFIX="%InstallPath%"
+    -DENABLE_UI=false
+    -DCOPIED_DEPENDENCIES=false
+    -DCOPY_DEPENDENCIES=true
+    -DBUILD_CAPTIONS=true
     -DCOMPILE_D3D12_HOOK=true
     
-  - cmd: |-
-    cmake ^
-    -G"%CmakeGenerator%" ^
-    -T"host=x64" ^
-    -H"%APPVEYOR_BUILD_FOLDER%" ^
-    -B"%BuildPath64%" ^
-    -A x64 ^
-    -DCMAKE_INSTALL_PREFIX="%InstallPath%" ^
-    -DENABLE_UI=false ^
-    -DCOPIED_DEPENDENCIES=false ^
-    -DCOPY_DEPENDENCIES=true ^
-    -DBUILD_CAPTIONS=true ^
+  - ps: |
+    cmake 
+    -G"%CmakeGenerator%" 
+    -T"host=x64" 
+    -H"%APPVEYOR_BUILD_FOLDER%" 
+    -B"%BuildPath64%" 
+    -A x64 
+    -DCMAKE_INSTALL_PREFIX="%InstallPath%" 
+    -DENABLE_UI=false 
+    -DCOPIED_DEPENDENCIES=false 
+    -DCOPY_DEPENDENCIES=true 
+    -DBUILD_CAPTIONS=true 
     -DCOMPILE_D3D12_HOOK=true
     
   - cmake --build "%BuildPath32%\plugins\win-capture\get-graphics-offsets" --config "%BuildConfig%" --target install
