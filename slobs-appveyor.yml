@@ -16,22 +16,22 @@ install:
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d11on12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\dxgi*" "C:\Program Files (x86)\Windows Kits\8.1\Include\shared"
-  - mkdir "${BuildPath64}"
-  - mkdir "${BuildPath32}"
+  - mkdir "%BuildPath64%"
+  - mkdir "%BuildPath32%"
 
 build_script:
-  - cmake -G"${CmakeGenerator}" -H"${APPVEYOR_BUILD_FOLDER}" -B"${BuildPath32}" -DCMAKE_INSTALL_PREFIX="${InstallPath}" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
-  - cmake -G"${CmakeGenerator}" -H"${APPVEYOR_BUILD_FOLDER}" -B"${BuildPath64}" -A x64 -DCMAKE_INSTALL_PREFIX="${InstallPath}" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
-  - cmake --build "${BuildPath32}\plugins\win-capture\get-graphics-offsets" --config "${BuildConfig}" --target install
-  - cmake --build "${BuildPath32}\plugins\win-capture\graphics-hook" --config "${BuildConfig}" --target install
-  - cmake --build "${BuildPath32}\plugins\win-capture\inject-helper" --config "${BuildConfig}" --target install
-  - cmake --build "${BuildPath64}" --config "${BuildConfig}" --target install
+  - cmake -G"%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32%" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake -G"%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath64%" -A x64 -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake --build "%BuildPath32%\plugins\win-capture\get-graphics-offsets" --config "%BuildConfig%" --target install
+  - cmake --build "%BuildPath32%\plugins\win-capture\graphics-hook" --config "%BuildConfig%" --target install
+  - cmake --build "%BuildPath32%\plugins\win-capture\inject-helper" --config "%BuildConfig%" --target install
+  - cmake --build "%BuildPath64%" --config "%BuildConfig%" --target install
 
 after_build:
-  - 7z a "${ArtifactPath}" "${InstallPath}\*"
+  - 7z a "%ArtifactPath%" "%InstallPath%\*"
 
 artifacts:
-  - path: "${ArtifactPath}"
+  - path: "$(ArtifactPath)"
     name: Packed Artifact
 
 test: off
