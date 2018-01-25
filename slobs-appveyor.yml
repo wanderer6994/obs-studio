@@ -11,7 +11,7 @@ install:
   - set BuildPath32=%APPVEYOR_BUILD_FOLDER%\build32
   - set BuildPath64=%APPVEYOR_BUILD_FOLDER%\build64
   - set InstallPath=%APPVEYOR_BUILD_FOLDER%\install
-  - set build_config=RelWithDebInfo
+  - set BuildConfig=RelWithDebInfo
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d11on12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\dxgi*" "C:\Program Files (x86)\Windows Kits\8.1\Include\shared"
@@ -19,15 +19,15 @@ install:
   - mkdir "%BuildPath32%"
 
 build_script:
-  - cmake -G "%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32%" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
-  - cmake -G "%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath64%" -A x64 -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
-  - cmake --build "%BuildPath32%" --target "get-graphics-offsets"
-  - cmake --build "%BuildPath32%" --target "graphics-hook"
-  - cmake --build "%BuildPath64%"
+  - cmake -G"%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath32%" -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake -G"%CmakeGenerator%" -H"%APPVEYOR_BUILD_FOLDER%" -B"%BuildPath64%" -A x64 -DCMAKE_INSTALL_PREFIX="%InstallPath%" -DENABLE_UI=false -DCOPIED_DEPENDENCIES=false -DCOPY_DEPENDENCIES=true -DBUILD_CAPTIONS=true -DCOMPILE_D3D12_HOOK=true
+  - cmake --build "%BuildPath32%" --config "%BuildConfig%" --target "get-graphics-offsets"
+  - cmake --build "%BuildPath32%" --config "%BuildConfig%" --target "graphics-hook"
+  - cmake --build "%BuildPath64%" --config "%BuildConfig%"
 
 after_build:
-  - cmake --build "%BuildPath32%" --target install
-  - cmake --build "%BuildPath64%" --target install
+  - cmake --build "%BuildPath32%" --config "%BuildConfig%" --target install
+  - cmake --build "%BuildPath64%" --config "%BuildConfig%" --target install
   
 deploy_script:
   - ps: Push-AppveyorArtifact "install" -FileName "$(git describe).zip"
