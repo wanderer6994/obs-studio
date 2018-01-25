@@ -32,7 +32,7 @@ after_build:
   - cmake --build "%BuildPath64%" --config "%BuildConfig%" --target install
   
 deploy_script:
-  - ps: Push-AppveyorArtifact "%InstallPath%" -FileName "$(git describe).zip"
+  - ps: Push-AppveyorArtifact "$Env:InstallPath" -FileName "$(git describe).zip"
 
 test: off
 
