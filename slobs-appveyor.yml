@@ -30,7 +30,7 @@ build_script:
 after_build:
   - 7z a "${ArtifactPath}" "${InstallPath}\*"
 
-artifact:
+artifacts:
   - path: "${ArtifactPath}"
     name: Packed Artifact
 
