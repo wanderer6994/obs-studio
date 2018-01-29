@@ -8,7 +8,7 @@ cmake ^
 	-DCOPIED_DEPENDENCIES=false ^
 	-DCOPY_DEPENDENCIES=true ^
 	-DBUILD_AMF_ENCODER=true ^
-	-DAMDAMF_SDKDir="AMF" ^
+	-DAMDAMF_SDKDir="AMF/AMF-%AMFVersion%" ^
 	-DCOMPILE_D3D12_HOOK=true
 
 cmake ^
@@ -22,7 +22,7 @@ cmake ^
 	-DCOPIED_DEPENDENCIES=false ^
 	-DCOPY_DEPENDENCIES=true ^
 	-DBUILD_AMF_ENCODER=true ^
-	-DAMDAMF_SDKDir="AMF" ^
+	-DAMDAMF_SDKDir="AMF/AMF-%AMFVersion%" ^
 	-DCOMPILE_D3D12_HOOK=true
 	
 cmake --build "%BuildPath32%\plugins\win-capture\get-graphics-offsets" --config "%BuildConfig%" --target install
