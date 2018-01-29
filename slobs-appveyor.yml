@@ -29,7 +29,7 @@ install:
   - mkdir "%BuildPath64%" & exit 0
 
 build_script:
-  - cmd: slobs-appveyor-build.cmd
+  - cmd: CI\build.cmd
 
 after_build:
   - 7z a "%ReleaseArtifact%" "%InstallPath%\*"
@@ -41,7 +41,5 @@ artifacts:
 test: off
 
 cache:
-  - dependencies2015.zip
-  - AMF.zip
   - build32\CMakeCache.txt
   - build64\CMakeCache.txt
