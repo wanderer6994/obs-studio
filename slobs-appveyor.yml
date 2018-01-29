@@ -11,11 +11,15 @@ environment:
   BuildPath64: $(APPVEYOR_BUILD_FOLDER)\build64
   InstallPath: $(APPVEYOR_BUILD_FOLDER)\packed_build
   BuildConfig: RelWithDebInfo
+  ReleaseArtifact: windows-x86_64-dev.zip
+  DependenciesUrl: https://obsproject.com/downloads/dependencies2015.zip
+  AMFVersion: 1.4.6
+  AMFUrl: https://github.com/GPUOpen-LibrariesAndSDKs/AMF/archive/v$(AMFVersion).zip
 
 install:
-  - ps: $env:ReleaseArtifact="windows-x86_64-dev.zip"
   - git submodule update --init --recursive --jobs 2
-  - if exist dependencies2015.zip (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -z dependencies2015.zip) else (curl -kLO https://obsproject.com/downloads/dependencies2015.zip -f --retry 5 -C -)
+  - curl -kLO %DependenciesUrl% -f --retry 5 -C - dependencies2015.zip
+  - curl -kLO %AMFUrl% -f --retry 5 -C - AMF.zip
   - 7z x dependencies2015.zip -odependencies2015
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d11on12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
@@ -37,5 +41,6 @@ test: off
 
 cache:
   - dependencies2015.zip
+  - AMF.zip
   - build32\CMakeCache.txt
   - build64\CMakeCache.txt
