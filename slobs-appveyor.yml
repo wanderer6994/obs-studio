@@ -10,12 +10,12 @@ environment:
   BuildPath32: $(APPVEYOR_BUILD_FOLDER)\build32
   BuildPath64: $(APPVEYOR_BUILD_FOLDER)\build64
   InstallPath: $(APPVEYOR_BUILD_FOLDER)\packed_build
-  CefVersion: 3.3325.1746.ge81cdf2
-  CefDirName: cef_binary_$(CefVersion)_windows64_minimal
+  CefVersion: 3.3396.1779.g36f9eab
+  CefDirName: cef_binary_$(CefVersion)_windows64
   CefPath: $(APPVEYOR_BUILD_FOLDER)\$(CefDirName)
   CefBuildPath: $(CefPath)\build
-  CefBz2: $(CefDirName).tar.bz2
-  CefUrl: http://opensource.spotify.com/cefbuilds/$(CefBz2)
+  CefZip: $(CefDirName).zip
+  CefUrl: https://s3-us-west-2.amazonaws.com/streamlabs-cef-dist/$(CefZip)
   BuildConfig: RelWithDebInfo
   ReleaseArtifact: windows-x86_64-dev.zip
   DependenciesUrl: https://obsproject.com/downloads/dependencies2015.zip
@@ -27,9 +27,8 @@ install:
   - git submodule update --init --recursive --jobs 2
   - if not exist "dependencies2015.zip" appveyor DownloadFile "%DependenciesUrl%"
   - if not exist "%AMFZip%" appveyor DownloadFile "%AMFUrl%" -FileName "%AMFZip%"
-  - if not exist "%CefBz2%" appveyor DownloadFile "%CefUrl%" -FileName "%CefBz2%"
-  - 7z x "%CefBz2%"
-  - 7z x "%CefDirName%.tar"
+  - if not exist "%CefZip%" appveyor DownloadFile "%CefUrl%" -FileName "%CefZip%"
+  - 7z x "%CefZip%"
   - 7z x dependencies2015.zip -odependencies2015
   - 7z x "%AMFZip%" -oAMF
   - move "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\d3d11on12*" "C:\Program Files (x86)\Windows Kits\8.1\Include\um"
@@ -52,6 +51,6 @@ test: off
 
 cache:
   - $(AMFZip)
-  - $(CefBz2)
-  - build32\CMakeCache.txt
-  - build64\CMakeCache.txt
+  - $(CefZip)
+  - build32\CMakeCache.txt -> slobs-appveyor-version.txt
+  - build64\CMakeCache.txt -> slobs-appveyor-version.txt
