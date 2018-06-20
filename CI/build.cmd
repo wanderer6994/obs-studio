@@ -6,7 +6,7 @@ cmake ^
 	-B"%CefBuildPath%" ^
 	-DCEF_RUNTIME_LIBRARY_FLAG="/MD"
 
-cmake --build "%CefBuildPath%" --config Release
+cmake --build "%CefBuildPath%" --config Release --target libcef_dll_wrapper
 
 cmake ^
 	-G"%CmakeGenerator%" ^
@@ -31,7 +31,8 @@ cmake ^
 	-DENABLE_SCRIPTING=false ^
 	-DCEF_ROOT_DIR=%CefPath% ^
 	-DCEF_WRAPPER_DIR="%CefBuildPath%\libcef_dll_wrapper\Release" ^
-	-DUSE_STATIC_CRT=false ^
+	-DUSE_OBS_FRONTEND_API=false ^
+	-DBROWSER_USE_STATIC_CRT=false ^
 	-DBUILD_BROWSER=true ^
 	-DCOMPILE_D3D12_HOOK=true
 
