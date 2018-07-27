@@ -55,5 +55,3 @@ test: off
 cache:
   - $(AMFZip)
   - $(CefZip)
-  - build32\CMakeCache.txt -> slobs-appveyor-version.txt
-  - build64\CMakeCache.txt -> slobs-appveyor-version.txt
