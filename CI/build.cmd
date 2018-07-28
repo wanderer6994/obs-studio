@@ -6,7 +6,7 @@ cmake ^
 	-B"%CefBuildPath%" ^
 	-DCEF_RUNTIME_LIBRARY_FLAG="/MD"
 
-cmake --build "%CefBuildPath%" --config Release --target libcef_dll_wrapper
+cmake --build "%CefBuildPath%" --config "%BuildConfig%" --target libcef_dll_wrapper
 
 cmake ^
 	-G"%CmakeGenerator%" ^

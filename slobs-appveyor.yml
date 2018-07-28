@@ -3,6 +3,10 @@ version: 1.0.{build}
 clone_depth: 1
 
 environment:
+  matrix:
+    - BuildConfig: RelWithDebInfo
+    - BuildConfig: Debug
+
   CURL_VERSION: 7.56.1
   CmakeGenerator: Visual Studio 14 2015
   DepsPath32: $(APPVEYOR_BUILD_FOLDER)\dependencies2015\win32
@@ -16,15 +20,11 @@ environment:
   CefBuildPath: $(CefPath)\build
   CefZip: $(CefDirName).zip
   CefUrl: https://s3-us-west-2.amazonaws.com/streamlabs-cef-dist/$(CefZip)
-  ReleaseArtifact: windows-x86_64-dev.zip
+  ReleaseArtifact: windows-x86_64-$(BuildConfig).zip
   DependenciesUrl: https://obsproject.com/downloads/dependencies2015.zip
   AMFVersion: 1.4.6
   AMFUrl: https://github.com/GPUOpen-LibrariesAndSDKs/AMF/archive/v$(AMFVersion).zip
   AMFZip: AMFv$(AMFVersion).zip
-
-  matrix:
-    - BuildConfig: RelWithDebInfo
-    - BuildConfig: Debug
 
 install:
   - git submodule update --init --recursive --jobs 2
@@ -47,7 +47,7 @@ after_build:
   - 7z a "%ReleaseArtifact%" "%InstallPath%\*"
 
 artifacts:
-  - path: $(ReleaseArtifact)-$(BuildConfig)
+  - path: $(ReleaseArtifact)
     name: Release Artifact
 
 test: off
