@@ -1,0 +1,53 @@
+image: Visual Studio 2017
+version: 1.0.{build}
+
+clone_depth: 1
+
+environment:
+  CURL_VERSION: 7.56.1
+  CmakeGenerator: Visual Studio 15 2017
+  DepsPath32: $(APPVEYOR_BUILD_FOLDER)\dependencies2015\win32
+  DepsPath64: $(APPVEYOR_BUILD_FOLDER)\dependencies2015\win64
+  BuildPath32: $(APPVEYOR_BUILD_FOLDER)\build32
+  BuildPath64: $(APPVEYOR_BUILD_FOLDER)\build64
+  InstallPath: $(APPVEYOR_BUILD_FOLDER)\packed_build
+  CefVersion: 3.3396.1779.g36f9eab
+  CefDirName: cef_binary_$(CefVersion)_windows64
+  CefPath: $(APPVEYOR_BUILD_FOLDER)\$(CefDirName)
+  CefBuildPath: $(CefPath)\build
+  CefZip: $(CefDirName).zip
+  CefUrl: https://s3-us-west-2.amazonaws.com/streamlabs-cef-dist/$(CefZip)
+  BuildConfig: RelWithDebInfo
+  ReleaseArtifact: windows-x86_64-dev.zip
+  DependenciesUrl: https://obsproject.com/downloads/dependencies2015.zip
+  AMFVersion: 1.4.6
+  AMFUrl: https://github.com/GPUOpen-LibrariesAndSDKs/AMF/archive/v$(AMFVersion).zip
+  AMFZip: AMFv$(AMFVersion).zip
+
+install:
+  - git submodule update --init --recursive --jobs 2
+  - if not exist "dependencies2015.zip" appveyor DownloadFile "%DependenciesUrl%"
+  - if not exist "%AMFZip%" appveyor DownloadFile "%AMFUrl%" -FileName "%AMFZip%"
+  - if not exist "%CefPath%" CI\build-cef.cmd
+  - 7z x dependencies2015.zip -odependencies2015
+  - 7z x "%AMFZip%" -oAMF
+  - mkdir "%BuildPath32%" & exit 0
+  - mkdir "%BuildPath64%" & exit 0
+
+build_script:
+  - CI\build.cmd
+
+after_build:
+  - 7z a "%ReleaseArtifact%" "%InstallPath%\*"
+
+artifacts:
+  - path: $(ReleaseArtifact)
+    name: Release Artifact
+
+test: off
+
+cache:
+  - $(CefPath)
+  - $(BuildPath32)/CMakeCache.txt
+  - $(BuildPath64)/CMakeCache.txt
+  - $(AMFZip)
