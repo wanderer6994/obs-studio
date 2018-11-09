@@ -51,5 +51,7 @@ deploy:
     region: us-west-2
     set_public: true
     artifact: $(ReleaseArtifact)
+    on:
+      branch: streamlabs
 
 test: off
