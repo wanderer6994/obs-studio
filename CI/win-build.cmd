@@ -25,7 +25,7 @@ cmake ^
 	-A x64 ^
 	-DCMAKE_INSTALL_PREFIX="%InstallPath%" ^
 	-DDepsPath="%DepsPath64%" ^
-	-VLCPath="%VLCLibPath%" ^
+	-DVLCPath="%VLCLibPath%" ^
 	-DCEF_ROOT_DIR="%CefPath%" ^
 	-DENABLE_UI=false ^
 	-DCOPIED_DEPENDENCIES=false ^
