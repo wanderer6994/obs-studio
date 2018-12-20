@@ -25,6 +25,7 @@
 #include <util/circlebuf.h>
 #include <util/threading.h>
 #include "ffmpeg-mux/ffmpeg-mux.h"
+#include "obs-internal.h"
 
 #include <libavformat/avformat.h>
 
@@ -683,16 +684,20 @@ static void *replay_buffer_mux_thread(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 
+	do_output_signal(stream->output, "writing");
+
 	start_pipe(stream, stream->path.array);
 
 	if (!stream->pipe) {
 		warn("Failed to create process pipe");
+		do_output_signal(stream->output, "writing_error");
 		goto error;
 	}
 
 	if (!send_headers(stream)) {
 		warn("Could not write headers for file '%s'",
 				stream->path.array);
+		do_output_signal(stream->output, "writing_error");
 		goto error;
 	}
 
@@ -703,6 +708,7 @@ static void *replay_buffer_mux_thread(void *data)
 	}
 
 	info("Wrote replay buffer to '%s'", stream->path.array);
+	do_output_signal(stream->output, "wrote");
 
 error:
 	os_process_pipe_destroy(stream->pipe);
