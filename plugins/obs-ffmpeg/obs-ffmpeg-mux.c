@@ -25,6 +25,7 @@
 #include <util/circlebuf.h>
 #include <util/threading.h>
 #include "ffmpeg-mux/ffmpeg-mux.h"
+#include "obs-internal.h"
 
 #include <libavformat/avformat.h>
 
