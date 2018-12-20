@@ -690,12 +690,14 @@ static void *replay_buffer_mux_thread(void *data)
 
 	if (!stream->pipe) {
 		warn("Failed to create process pipe");
+		do_output_signal(stream->output, "writing_error");
 		goto error;
 	}
 
 	if (!send_headers(stream)) {
 		warn("Could not write headers for file '%s'",
 				stream->path.array);
+		do_output_signal(stream->output, "writing_error");
 		goto error;
 	}
 
@@ -709,7 +711,6 @@ static void *replay_buffer_mux_thread(void *data)
 	do_output_signal(stream->output, "wrote");
 
 error:
-	do_output_signal(stream->output, "writing_error");
 	os_process_pipe_destroy(stream->pipe);
 	stream->pipe = NULL;
 	da_free(stream->mux_packets);
