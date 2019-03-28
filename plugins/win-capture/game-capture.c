@@ -1510,7 +1510,7 @@ static void copy_shmem_tex(struct game_capture *gc)
 			// If the new pitch is higher from the old one we must
 			// perform some modifications to not cause a crash
 			// Check if the old values are valid
-			if (pitch > gc->pitch && gc->shmem_data->tex2_offset > 0 && gc->shmem_data->tex1_offset > 0)
+			if (pitch > gc->pitch)
 			{
 				uint32_t tex_size = gc->shmem_data->tex2_offset - gc->shmem_data->tex1_offset;
 
