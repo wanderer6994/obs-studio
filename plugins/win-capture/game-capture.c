@@ -1520,9 +1520,9 @@ static void copy_shmem_tex(struct game_capture *gc)
 			// Check if the old values are valid
 			if (pitch > gc->pitch && last_pitch != 0 && last_y != 0)
 			{
-				// If the old pitch is the same stored here we
+				// If the old pitch is not the same stored here we
 				// must update our y max value
-				if (gc->pitch <= last_pitch && fixed_y > last_y)
+				if (gc->pitch != last_pitch && fixed_y > last_y)
 				{
 					fixed_y = last_y;
 				}
