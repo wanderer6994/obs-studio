@@ -9,6 +9,7 @@
 
 #include "window-basic-main.hpp"
 #include "remote-text.hpp"
+#include "window-dock.hpp"
 
 #include <json11.hpp>
 
@@ -44,7 +45,7 @@ MixerAuth::MixerAuth(const Def &d)
 {
 }
 
-bool MixerAuth::GetChannelInfo()
+bool MixerAuth::GetChannelInfo(bool allow_retry)
 try {
 	std::string client_id = MIXER_CLIENTID;
 	deobfuscate_str(&client_id[0], MIXER_HASH);
@@ -148,8 +149,8 @@ try {
 	 * it'll be an empty stream key usually.  So treat empty stream key as
 	 * an error. */
 	if (key_suffix.empty()) {
-		if (RetryLogin()) {
-			return GetChannelInfo();
+		if (allow_retry && RetryLogin()) {
+			return GetChannelInfo(false);
 		}
 		throw ErrorInfo("Auth Failure", "Could not get channel data");
 	}
@@ -204,15 +205,17 @@ bool MixerAuth::LoadInternal()
 	return OAuthStreamKey::LoadInternal();
 }
 
-class MixerChat : public QDockWidget {
+class MixerChat : public OBSDock {
 public:
-	inline MixerChat() : QDockWidget() {}
+	inline MixerChat() : OBSDock() {}
 
 	QScopedPointer<QCefWidget> widget;
 };
 
 void MixerAuth::LoadUI()
 {
+	if (!cef)
+		return;
 	if (uiLoaded)
 		return;
 	if (!GetChannelInfo())
@@ -261,6 +264,9 @@ void MixerAuth::LoadUI()
 
 bool MixerAuth::RetryLogin()
 {
+	if (!cef)
+		return false;
+
 	OAuthLogin login(OBSBasic::Get(), MIXER_AUTH_URL, false);
 	cef->add_popup_whitelist_url("about:blank", &login);
 
@@ -278,6 +284,10 @@ bool MixerAuth::RetryLogin()
 
 std::shared_ptr<Auth> MixerAuth::Login(QWidget *parent)
 {
+	if (!cef) {
+		return nullptr;
+	}
+
 	OAuthLogin login(parent, MIXER_AUTH_URL, false);
 	cef->add_popup_whitelist_url("about:blank", &login);
 
@@ -296,7 +306,7 @@ std::shared_ptr<Auth> MixerAuth::Login(QWidget *parent)
 	}
 
 	std::string error;
-	if (auth->GetChannelInfo()) {
+	if (auth->GetChannelInfo(false)) {
 		return auth;
 	}
 

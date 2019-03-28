@@ -409,8 +409,6 @@ static bool init_encoder(struct nvenc_data *enc, obs_data_t *settings)
 	params->encodeConfig = &enc->config;
 	params->maxEncodeWidth = voi->width;
 	params->maxEncodeHeight = voi->height;
-	config->rcParams.averageBitRate = bitrate * 1000;
-	config->rcParams.maxBitRate = vbr ? max_bitrate * 1000 : bitrate * 1000;
 	config->gopLength = gop_size;
 	config->frameIntervalP = 1 + bf;
 	h264_config->idrPeriod = gop_size;
@@ -455,13 +453,19 @@ static bool init_encoder(struct nvenc_data *enc, obs_data_t *settings)
 		config->rcParams.constQP.qpIntra = cqp;
 		enc->can_change_bitrate = false;
 
+		bitrate = 0;
+		max_bitrate = 0;
+
 	} else if (astrcmpi(rc, "vbr") != 0) { /* CBR by default */
 		h264_config->outputBufferingPeriodSEI = 1;
-		h264_config->outputPictureTimingSEI = 1;
 		config->rcParams.rateControlMode = twopass
 			? NV_ENC_PARAMS_RC_2_PASS_QUALITY
 			: NV_ENC_PARAMS_RC_CBR;
 	}
+
+	h264_config->outputPictureTimingSEI = 1;
+	config->rcParams.averageBitRate = bitrate * 1000;
+	config->rcParams.maxBitRate = vbr ? max_bitrate * 1000 : bitrate * 1000;
 
 	/* -------------------------- */
 	/* profile                    */
@@ -898,7 +902,7 @@ static bool nvenc_sei_data(void *data, uint8_t **sei, size_t *size)
 	}
 
 	*sei  = enc->sei;
-	*size = enc->header_size;
+	*size = enc->sei_size;
 	return true;
 }
 

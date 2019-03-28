@@ -9,6 +9,7 @@
 
 #include "window-basic-main.hpp"
 #include "remote-text.hpp"
+#include "window-dock.hpp"
 
 #include <json11.hpp>
 
@@ -42,6 +43,9 @@ static Auth::Def twitchDef = {
 TwitchAuth::TwitchAuth(const Def &d)
 	: OAuthStreamKey(d)
 {
+	if (!cef)
+		return;
+
 	cef->add_popup_whitelist_url(
 			"https://twitch.tv/popout/frankerfacez/chat?ffz-settings",
 			this);
@@ -162,9 +166,9 @@ bool TwitchAuth::LoadInternal()
 	return OAuthStreamKey::LoadInternal();
 }
 
-class TwitchWidget : public QDockWidget {
+class TwitchWidget : public OBSDock {
 public:
-	inline TwitchWidget() : QDockWidget() {}
+	inline TwitchWidget() : OBSDock() {}
 
 	QScopedPointer<QCefWidget> widget;
 
@@ -194,6 +198,8 @@ static const char *referrer_script2 = "'; }});";
 
 void TwitchAuth::LoadUI()
 {
+	if (!cef)
+		return;
 	if (uiLoaded)
 		return;
 	if (!GetChannelInfo())
