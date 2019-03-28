@@ -181,10 +181,6 @@ struct game_capture {
 struct graphics_offsets offsets32 = {0};
 struct graphics_offsets offsets64 = {0};
 
-uint32_t last_pitch = 0;
-uint32_t last_x = 0;
-uint32_t last_y = 0;
-
 static inline bool use_anticheat(struct game_capture *gc)
 {
 	return gc->config.anticheat_hook && !gc->is_app;
@@ -1248,10 +1244,6 @@ enum capture_result {
 
 static inline enum capture_result init_capture_data(struct game_capture *gc)
 {
-	last_x = gc->cx;
-	last_y = gc->cy;
-	last_pitch = gc->pitch;
-
 	gc->cx = gc->global_hook_info->cx;
 	gc->cy = gc->global_hook_info->cy;
 	gc->pitch = gc->global_hook_info->pitch;
@@ -1518,13 +1510,13 @@ static void copy_shmem_tex(struct game_capture *gc)
 			// If the new pitch is higher from the old one we must
 			// perform some modifications to not cause a crash
 			// Check if the old values are valid
-			if (pitch > gc->pitch && last_pitch != 0 && last_y != 0)
+			if (pitch > gc->pitch)
 			{
-				// If the old pitch is not the same stored here we
-				// must update our y max value
-				if (gc->pitch != last_pitch && fixed_y > last_y)
+				uint32_t tex_size = gc->shmem_data->tex2_offset - gc->shmem_data->tex1_offset;
+				
+				if (fixed_y > tex_size / gc->pitch)
 				{
-					fixed_y = last_y;
+					fixed_y = tex_size / gc->pitch;
 				}
 			}
 
