@@ -465,7 +465,6 @@ static int mp_media_next_packet(mp_media_t *media)
 	new_pkt = pkt;
 
 	if (media->index_eof < 0) {
-		blog(LOG_INFO, "Reading %d", media->index);
 		av_init_packet(&media->packets[media->index].packet);
 		ret = av_read_frame(media->fmt, &media->packets[media->index].packet);
 		if (ret < 0) {
