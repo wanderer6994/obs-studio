@@ -101,6 +101,7 @@ struct mp_media {
 
 	struct cached_packet packets[65536];
 	int index;
+	int index_eof;
 };
 
 typedef struct mp_media mp_media_t;

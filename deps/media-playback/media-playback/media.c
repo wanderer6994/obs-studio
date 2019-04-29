@@ -97,65 +97,11 @@ static inline struct mp_decode *get_packet_decoder(mp_media_t *media,
 	return NULL;
 }
 
-static int mp_media_next_packet(mp_media_t *media)
-{
-	int ret = 0;
-	AVPacket new_pkt;
-	AVPacket pkt;
-	av_init_packet(&pkt);
-	new_pkt = pkt;
-
-	if (media->packets[media->index].packet.size == 0) {
-		av_init_packet(&media->packets[media->index].packet);
-		ret = av_read_frame(media->fmt, &media->packets[media->index].packet);
-		if (ret < 0) {
-			if (ret != AVERROR_EOF)
-				blog(LOG_WARNING, "MP: av_read_frame failed: %s (%d)",
-					av_err2str(ret), ret);
-			return ret;
-		}
-
-	}
-	else {
-		int i = 0;
-		//ret = av_read_frame(media->fmt, &pkt);
-		//if (ret < 0) {
-		//	if (ret != AVERROR_EOF)
-		//		blog(LOG_WARNING, "MP: av_read_frame failed: %s (%d)",
-		//			av_err2str(ret), ret);
-		//	return ret;
-		//}
-		//struct mp_decode *d = get_packet_decoder(media, &pkt);
-		//if (d && pkt.size) {
-		//	blog(LOG_INFO, "Decoding %d", media->index);
-		//	av_packet_ref(&new_pkt, &pkt);
-		//}
-	}
-	media->packets[media->index].d = get_packet_decoder(media, &media->packets[media->index].packet);
-	if (media->packets[media->index].d && media->packets[media->index].packet.size) {
-		//blog(LOG_INFO, "Decoding %d", media->index);
-		av_packet_ref(&new_pkt, &media->packets[media->index].packet);
-	}
-
-	mp_decode_push_packet(media->packets[media->index].d, &new_pkt);
-	media->index++;
-	//av_packet_unref(&pkt);
-	return ret;
-}
-
-static inline bool mp_media_ready_to_start(mp_media_t *m)
-{
-	if (m->has_audio && !m->a.eof && !m->a.frame_ready)
-		return false;
-	if (m->has_video && !m->v.eof && !m->v.frame_ready)
-		return false;
-	return true;
-}
-
 static inline bool mp_decode_frame(struct mp_decode *d)
 {
 	return d->frame_ready || mp_decode_next(d);
 }
+
 
 static inline int get_sws_colorspace(enum AVColorSpace cs)
 {
@@ -189,27 +135,36 @@ static bool mp_media_init_scaling(mp_media_t *m)
 	const int *coeff = sws_getCoefficients(space);
 
 	m->swscale = sws_getCachedContext(NULL,
-			m->v.decoder->width, m->v.decoder->height,
-			m->v.decoder->pix_fmt,
-			m->v.decoder->width, m->v.decoder->height,
-			m->scale_format,
-			SWS_FAST_BILINEAR, NULL, NULL, NULL);
+		m->v.decoder->width, m->v.decoder->height,
+		m->v.decoder->pix_fmt,
+		m->v.decoder->width, m->v.decoder->height,
+		m->scale_format,
+		SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	if (!m->swscale) {
 		blog(LOG_WARNING, "MP: Failed to initialize scaler");
 		return false;
 	}
 
 	sws_setColorspaceDetails(m->swscale, coeff, range, coeff, range, 0,
-			FIXED_1_0, FIXED_1_0);
+		FIXED_1_0, FIXED_1_0);
 
 	int ret = av_image_alloc(m->scale_pic, m->scale_linesizes,
-			m->v.decoder->width, m->v.decoder->height,
-			m->scale_format, 1);
+		m->v.decoder->width, m->v.decoder->height,
+		m->scale_format, 1);
 	if (ret < 0) {
 		blog(LOG_WARNING, "MP: Failed to create scale pic data");
 		return false;
 	}
 
+	return true;
+}
+
+static inline bool mp_media_ready_to_start(mp_media_t *m)
+{
+	if (m->has_audio && !m->a.eof && !m->a.frame_ready)
+		return false;
+	if (m->has_video && !m->v.eof && !m->v.frame_ready)
+		return false;
 	return true;
 }
 
@@ -271,7 +226,7 @@ static inline int64_t mp_media_get_base_pts(mp_media_t *m)
 }
 
 static inline bool mp_media_can_play_frame(mp_media_t *m,
-		struct mp_decode *d)
+	struct mp_decode *d)
 {
 	return d->frame_ready && d->frame_pts <= m->next_pts_ns;
 }
@@ -279,7 +234,7 @@ static inline bool mp_media_can_play_frame(mp_media_t *m,
 static void mp_media_next_audio(mp_media_t *m)
 {
 	struct mp_decode *d = &m->a;
-	struct obs_source_audio audio = {0};
+	struct obs_source_audio audio = { 0 };
 	AVFrame *f = d->frame;
 
 	if (!mp_media_can_play_frame(m, d))
@@ -322,16 +277,17 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 
 		if (!m->v_cb)
 			return;
-	} else if (!d->frame_ready) {
+	}
+	else if (!d->frame_ready) {
 		return;
 	}
 
 	bool flip = false;
 	if (m->swscale) {
 		int ret = sws_scale(m->swscale,
-				(const uint8_t *const *)f->data, f->linesize,
-				0, f->height,
-				m->scale_pic, m->scale_linesizes);
+			(const uint8_t *const *)f->data, f->linesize,
+			0, f->height,
+			m->scale_pic, m->scale_linesizes);
 		if (ret < 0)
 			return;
 
@@ -341,7 +297,8 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			frame->linesize[i] = abs(m->scale_linesizes[i]);
 		}
 
-	} else {
+	}
+	else {
 		flip = f->linesize[0] < 0 && f->linesize[1] == 0;
 
 		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
@@ -354,25 +311,25 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 		frame->data[0] -= frame->linesize[0] * (f->height - 1);
 
 	new_format = convert_pixel_format(m->scale_format);
-	new_space  = convert_color_space(f->colorspace);
-	new_range  = m->force_range == VIDEO_RANGE_DEFAULT
+	new_space = convert_color_space(f->colorspace);
+	new_range = m->force_range == VIDEO_RANGE_DEFAULT
 		? convert_color_range(f->color_range)
 		: m->force_range;
 
 	if (new_format != frame->format ||
-	    new_space  != m->cur_space  ||
-	    new_range  != m->cur_range) {
+		new_space != m->cur_space ||
+		new_range != m->cur_range) {
 		bool success;
 
 		frame->format = new_format;
 		frame->full_range = new_range == VIDEO_RANGE_FULL;
 
 		success = video_format_get_parameters(
-				new_space,
-				new_range,
-				frame->color_matrix,
-				frame->color_range_min,
-				frame->color_range_max);
+			new_space,
+			new_range,
+			frame->color_matrix,
+			frame->color_range_min,
+			frame->color_range_max);
 
 		frame->format = new_format;
 		m->cur_space = new_space;
@@ -406,23 +363,6 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 		m->v_cb(m->opaque, frame);
 }
 
-static void mp_media_calc_next_ns(mp_media_t *m)
-{
-	int64_t min_next_ns = mp_media_get_next_min_pts(m);
-
-	int64_t delta = min_next_ns - m->next_pts_ns;
-//#ifdef _DEBUG
-//	assert(delta >= 0);
-//#endif
-	if (delta < 0)
-		delta = 0;
-	if (delta > 3000000000)
-		delta = 0;
-
-	m->next_ns += delta;
-	m->next_pts_ns = min_next_ns;
-}
-
 static bool mp_media_reset(mp_media_t *m)
 {
 	AVStream *stream = m->fmt->streams[0];
@@ -434,7 +374,8 @@ static bool mp_media_reset(mp_media_t *m)
 	if (m->fmt->duration == AV_NOPTS_VALUE) {
 		seek_pos = 0;
 		seek_flags = AVSEEK_FLAG_FRAME;
-	} else {
+	}
+	else {
 		seek_pos = m->fmt->start_time;
 		seek_flags = AVSEEK_FLAG_BACKWARD;
 	}
@@ -447,7 +388,7 @@ static bool mp_media_reset(mp_media_t *m)
 		int ret = av_seek_frame(m->fmt, 0, seek_target, seek_flags);
 		if (ret < 0) {
 			blog(LOG_WARNING, "MP: Failed to seek: %s",
-					av_err2str(ret));
+				av_err2str(ret));
 		}
 	}
 
@@ -477,7 +418,8 @@ static bool mp_media_reset(mp_media_t *m)
 		m->start_ts = m->next_pts_ns = mp_media_get_next_min_pts(m);
 		if (m->next_ns)
 			m->next_ns += offset;
-	} else {
+	}
+	else {
 		m->start_ts = m->next_pts_ns = mp_media_get_next_min_pts(m);
 		m->play_sys_ts = (int64_t)os_gettime_ns();
 		m->next_ns = 0;
@@ -488,6 +430,82 @@ static bool mp_media_reset(mp_media_t *m)
 	if (stopping && m->stop_cb)
 		m->stop_cb(m->opaque);
 	return true;
+}
+
+static inline bool mp_media_eof(mp_media_t *m)
+{
+	bool v_ended = !m->has_video || !m->v.frame_ready;
+	bool a_ended = !m->has_audio || !m->a.frame_ready;
+	bool eof = v_ended && a_ended;
+
+	if (eof) {
+		bool looping;
+
+		pthread_mutex_lock(&m->mutex);
+		looping = m->looping;
+		if (!looping) {
+			m->active = false;
+			m->stopping = true;
+		}
+
+		blog(LOG_INFO, "Setting Index to 0 in mp_media_eof");
+		m->index_eof = m->index;
+		m->index = 0;
+		pthread_mutex_unlock(&m->mutex);
+		mp_media_reset(m);
+	}
+	return eof;
+}
+
+static int mp_media_next_packet(mp_media_t *media)
+{
+	int ret = 0;
+	AVPacket new_pkt;
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	new_pkt = pkt;
+
+	if (media->index_eof < 0) {
+		blog(LOG_INFO, "Reading %d", media->index);
+		av_init_packet(&media->packets[media->index].packet);
+		ret = av_read_frame(media->fmt, &media->packets[media->index].packet);
+		if (ret < 0) {
+			if (ret != AVERROR_EOF)
+				blog(LOG_WARNING, "MP: av_read_frame failed: %s (%d)",
+					av_err2str(ret), ret);
+			return ret;
+		}
+
+	}
+	else if (media->index == media->index_eof) {
+		media->eof = true;
+	}
+
+	media->packets[media->index].d = get_packet_decoder(media, &media->packets[media->index].packet);
+	if (media->packets[media->index].d && media->packets[media->index].packet.size) {
+		av_packet_ref(&new_pkt, &media->packets[media->index].packet);
+	}
+
+	mp_decode_push_packet(media->packets[media->index].d, &new_pkt);
+	media->index++;
+	return ret;
+}
+
+static void mp_media_calc_next_ns(mp_media_t *m)
+{
+	int64_t min_next_ns = mp_media_get_next_min_pts(m);
+
+	int64_t delta = min_next_ns - m->next_pts_ns;
+#ifdef _DEBUG
+	assert(delta >= 0);
+#endif
+	if (delta < 0)
+		delta = 0;
+	if (delta > 3000000000)
+		delta = 0;
+
+	m->next_ns += delta;
+	m->next_pts_ns = min_next_ns;
 }
 
 static inline bool mp_media_sleepto(mp_media_t *m)
@@ -509,31 +527,6 @@ static inline bool mp_media_sleepto(mp_media_t *m)
 	}
 
 	return timeout;
-}
-
-static inline bool mp_media_eof(mp_media_t *m)
-{
-	bool v_ended = !m->has_video || !m->v.frame_ready;
-	bool a_ended = !m->has_audio || !m->a.frame_ready;
-	bool eof = v_ended && a_ended;
-
-	if (eof) {
-		bool looping;
-
-		pthread_mutex_lock(&m->mutex);
-		blog(LOG_INFO, "Setting Index to 0");
-		m->index = 0;
-		looping = m->looping;
-		if (!looping) {
-			m->active = false;
-			m->stopping = true;
-		}
-		pthread_mutex_unlock(&m->mutex);
-
-		mp_media_reset(m);
-	}
-
-	return eof;
 }
 
 static int interrupt_callback(void *data)
@@ -609,8 +602,6 @@ static inline bool mp_media_thread(mp_media_t *m)
 	if (!mp_media_reset(m)) {
 		return false;
 	}
-	//blog(LOG_INFO, "Setting Index to 0");
-	//m->index = 0;
 	for (;;) {
 		bool reset, kill, is_active;
 		bool timeout = false;
@@ -652,8 +643,9 @@ static inline bool mp_media_thread(mp_media_t *m)
 
 			if (!mp_media_prepare_frames(m))
 				return false;
-			if (mp_media_eof(m))
+			if (mp_media_eof(m)) {
 				continue;
+			}
 
 			mp_media_calc_next_ns(m);
 		}
@@ -690,7 +682,7 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	m->path = info->path ? bstrdup(info->path) : NULL;
 	m->format_name = info->format ? bstrdup(info->format) : NULL;
 	m->hw = info->hardware_decoding;
-
+	m->index_eof = -1;
 	if (pthread_create(&m->thread, NULL, mp_media_thread_start, m) != 0) {
 		blog(LOG_WARNING, "MP: Could not create media thread");
 		return false;
