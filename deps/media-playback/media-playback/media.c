@@ -448,7 +448,6 @@ static inline bool mp_media_eof(mp_media_t *m)
 			m->stopping = true;
 		}
 
-		blog(LOG_INFO, "Setting Index to 0 in mp_media_eof");
 		m->index_eof = m->index;
 		m->index = 0;
 		pthread_mutex_unlock(&m->mutex);
