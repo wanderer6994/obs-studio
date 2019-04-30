@@ -97,9 +97,9 @@ static inline struct mp_decode *get_packet_decoder(mp_media_t *media,
 	return NULL;
 }
 
-static inline bool mp_decode_frame(struct mp_decode *d)
+static inline bool mp_decode_frame(struct mp_decode *d, bool isVideo)
 {
-	return d->frame_ready || mp_decode_next(d);
+	return d->frame_ready || mp_decode_next(d, isVideo);
 }
 
 
@@ -179,9 +179,9 @@ static bool mp_media_prepare_frames(mp_media_t *m)
 				return false;
 		}
 
-		if (m->has_video && !mp_decode_frame(&m->v))
+		if (m->has_video && !mp_decode_frame(&m->v, true))
 			return false;
-		if (m->has_audio && !mp_decode_frame(&m->a))
+		if (m->has_audio && !mp_decode_frame(&m->a, false))
 			return false;
 	}
 
@@ -193,7 +193,6 @@ static bool mp_media_prepare_frames(mp_media_t *m)
 			}
 		}
 	}
-
 	return true;
 }
 
@@ -494,9 +493,9 @@ static void mp_media_calc_next_ns(mp_media_t *m)
 	int64_t min_next_ns = mp_media_get_next_min_pts(m);
 
 	int64_t delta = min_next_ns - m->next_pts_ns;
-#ifdef _DEBUG
-	assert(delta >= 0);
-#endif
+//#ifdef _DEBUG
+//	assert(delta >= 0);
+//#endif
 	if (delta < 0)
 		delta = 0;
 	if (delta > 3000000000)
@@ -515,6 +514,9 @@ static inline bool mp_media_sleepto(mp_media_t *m)
 	} else {
 		uint64_t t = os_gettime_ns();
 		const uint64_t timeout_ns = 200000000;
+
+		bool first = m->next_ns > t;
+		bool second = (m->next_ns - t) > timeout_ns;
 
 		if (m->next_ns > t && (m->next_ns - t) > timeout_ns) {
 			os_sleepto_ns(t + timeout_ns);
@@ -613,6 +615,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 				return false;
 		} else {
 			timeout = mp_media_sleepto(m);
+			blog(LOG_INFO, "timeout = %d", timeout);
 		}
 
 		pthread_mutex_lock(&m->mutex);
@@ -644,7 +647,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 			if (mp_media_eof(m)) {
 				continue;
 			}
-
+			blog(LOG_INFO, "Calulate next ns");
 			mp_media_calc_next_ns(m);
 		}
 	}

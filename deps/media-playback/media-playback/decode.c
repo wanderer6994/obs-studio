@@ -206,27 +206,37 @@ static inline int64_t get_estimated_duration(struct mp_decode *d,
 	}
 }
 
-static int decode_packet(struct mp_decode *d, int *got_frame)
+static int decode_packet(struct mp_decode *d, int *got_frame, bool isVideo)
 {
+
 	int ret;
-	*got_frame = 0;
+	if (d->cached_frames[d->index]) {
+		d->frame = av_frame_alloc();
+		d->frame->format = d->cached_frames[d->index]->format;
+		d->frame->width = d->cached_frames[d->index]->width;
+		d->frame->height = d->cached_frames[d->index]->height;
+		d->frame->channels = d->cached_frames[d->index]->channels;
+		d->frame->channel_layout = d->cached_frames[d->index]->channel_layout;
+		d->frame->nb_samples = d->cached_frames[d->index]->nb_samples;
+
+		d->frame->pts = d->cached_frames[d->index]->pts;
+		d->frame->pkt_pts = d->cached_frames[d->index]->pkt_pts;
+		d->frame->pkt_dts = d->cached_frames[d->index]->pkt_dts;
+
+		av_frame_get_buffer(d->frame, 32);
+		av_frame_copy(d->frame, d->cached_frames[d->index]);
+		av_frame_copy_props(d->frame, d->cached_frames[d->index]);
+
+		d->index++;
+
+		blog(LOG_INFO, "no decoding, cached: %d", d->index);
+		ret = 0;
+	}
+	else {
+		blog(LOG_INFO, "decoding: %d", d->index);
+		*got_frame = 0;
 
 #ifdef USE_NEW_FFMPEG_DECODE_API
-	ret = avcodec_receive_frame(d->decoder, d->frame);
-	if (ret != 0 && ret != AVERROR(EAGAIN)) {
-		if (ret == AVERROR_EOF)
-			ret = 0;
-		return ret;
-	}
-
-	if (ret != 0) {
-		ret = avcodec_send_packet(d->decoder, &d->pkt);
-		if (ret != 0 && ret != AVERROR(EAGAIN)) {
-			if (ret == AVERROR_EOF)
-				ret = 0;
-			return ret;
-		}
-
 		ret = avcodec_receive_frame(d->decoder, d->frame);
 		if (ret != 0 && ret != AVERROR(EAGAIN)) {
 			if (ret == AVERROR_EOF)
@@ -234,26 +244,65 @@ static int decode_packet(struct mp_decode *d, int *got_frame)
 			return ret;
 		}
 
-		*got_frame = (ret == 0);
-		ret = d->pkt.size;
-	} else {
-		ret = 0;
-		*got_frame = 1;
-	}
+		if (ret != 0) {
+			ret = avcodec_send_packet(d->decoder, &d->pkt);
+			if (ret != 0 && ret != AVERROR(EAGAIN)) {
+				if (ret == AVERROR_EOF)
+					ret = 0;
+				return ret;
+			}
+
+			ret = avcodec_receive_frame(d->decoder, d->frame);
+			if (ret != 0 && ret != AVERROR(EAGAIN)) {
+				if (ret == AVERROR_EOF)
+					ret = 0;
+				return ret;
+			}
+
+			*got_frame = (ret == 0);
+			ret = d->pkt.size;
+
+
+		}
+		else {
+			ret = 0;
+			*got_frame = 1;
+		}
+
+		d->cached_frames[d->index] = av_frame_alloc();
+		d->cached_frames[d->index]->format = d->frame->format;
+		d->cached_frames[d->index]->width = d->frame->width;
+		d->cached_frames[d->index]->height = d->frame->height;
+		d->cached_frames[d->index]->channels = d->frame->channels;
+		d->cached_frames[d->index]->channel_layout = d->frame->channel_layout;
+		d->cached_frames[d->index]->nb_samples = d->frame->nb_samples;
+
+		d->cached_frames[d->index]->pts = d->frame->pts;
+		d->cached_frames[d->index]->pkt_pts = d->frame->pkt_pts;
+		d->cached_frames[d->index]->pkt_dts = d->frame->pkt_dts;
+
+		av_frame_get_buffer(d->cached_frames[d->index], 32);
+		av_frame_copy(d->cached_frames[d->index], d->frame);
+		av_frame_copy_props(d->cached_frames[d->index], d->frame);
+
+		d->index++;
 
 #else
-	if (d->audio) {
-		ret = avcodec_decode_audio4(d->decoder,
+		if (d->audio) {
+			ret = avcodec_decode_audio4(d->decoder,
 				d->frame, got_frame, &d->pkt);
-	} else {
-		ret = avcodec_decode_video2(d->decoder,
+		}
+		else {
+			ret = avcodec_decode_video2(d->decoder,
 				d->frame, got_frame, &d->pkt);
-	}
+		}
 #endif
+	}
+
 	return ret;
 }
 
-bool mp_decode_next(struct mp_decode *d)
+bool mp_decode_next(struct mp_decode *d, bool isVideo)
 {
 	bool eof = d->m->eof;
 	int got_frame;
@@ -281,10 +330,13 @@ bool mp_decode_next(struct mp_decode *d)
 			}
 		}
 
-		ret = decode_packet(d, &got_frame);
+		ret = decode_packet(d, &got_frame, isVideo);
 
 		if (!got_frame && ret == 0) {
 			d->eof = true;
+			if (d->index_eof < 0)
+				d->index_eof = d->index;
+			d->index= 0;
 			return true;
 		}
 		if (ret < 0) {

@@ -72,6 +72,10 @@ struct mp_decode {
 	AVPacket              pkt;
 	bool                  packet_pending;
 	struct circlebuf      packets;
+
+	struct AVFrame*       cached_frames[65536];
+	int                   index;
+	int                   index_eof;
 };
 
 extern bool mp_decode_init(struct mp_media *media, enum AVMediaType type,
@@ -81,7 +85,7 @@ extern void mp_decode_free(struct mp_decode *decode);
 extern void mp_decode_clear_packets(struct mp_decode *decode);
 
 extern void mp_decode_push_packet(struct mp_decode *decode, AVPacket *pkt);
-extern bool mp_decode_next(struct mp_decode *decode);
+extern bool mp_decode_next(struct mp_decode *decode, bool isVideo);
 extern void mp_decode_flush(struct mp_decode *decode);
 
 #ifdef __cplusplus
