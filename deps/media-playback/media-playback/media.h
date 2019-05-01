@@ -93,6 +93,13 @@ struct mp_media {
 
 	bool thread_valid;
 	pthread_t thread;
+
+	int index_video;
+	int index_video_eof;
+	int index_audio;
+	int index_audio_eof;
+	struct obs_source_frame *video_frames[65536];
+	struct obs_source_frame *audio_frames[65536];
 };
 
 typedef struct mp_media mp_media_t;

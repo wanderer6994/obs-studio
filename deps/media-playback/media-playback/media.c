@@ -294,90 +294,111 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 	AVFrame *f = d->frame;
 
 	if (!preload) {
-		if (!mp_media_can_play_frame(m, d))
+		if (!mp_media_can_play_frame(m, d)) {
 			return;
+		}
 
 		d->frame_ready = false;
 
-		if (!m->v_cb)
+		if (!m->v_cb) {
 			return;
-	} else if (!d->frame_ready) {
+		}
+	}
+	else if (!d->frame_ready) {
 		return;
 	}
 
-	bool flip = false;
-	if (m->swscale) {
-		int ret = sws_scale(m->swscale,
+	if (m->index_video_eof > 0 && m->index_video > m->index_video_eof)
+		m->index_video = 0;
+
+	if (!m->video_frames[m->index_video]) {
+		blog(LOG_INFO, "decoding, %d", m->index_video);
+		bool flip = false;
+		if (m->swscale) {
+			int ret = sws_scale(m->swscale,
 				(const uint8_t *const *)f->data, f->linesize,
 				0, f->height,
 				m->scale_pic, m->scale_linesizes);
-		if (ret < 0)
-			return;
+			if (ret < 0)
+				return;
 
-		flip = m->scale_linesizes[0] < 0 && m->scale_linesizes[1] == 0;
-		for (size_t i = 0; i < 4; i++) {
-			frame->data[i] = m->scale_pic[i];
-			frame->linesize[i] = abs(m->scale_linesizes[i]);
+			flip = m->scale_linesizes[0] < 0 && m->scale_linesizes[1] == 0;
+			for (size_t i = 0; i < 4; i++) {
+				frame->data[i] = m->scale_pic[i];
+				frame->linesize[i] = abs(m->scale_linesizes[i]);
+			}
+
+		}
+		else {
+			flip = f->linesize[0] < 0 && f->linesize[1] == 0;
+
+			for (size_t i = 0; i < MAX_AV_PLANES; i++) {
+				frame->data[i] = f->data[i];
+				frame->linesize[i] = abs(f->linesize[i]);
+			}
 		}
 
-	} else {
-		flip = f->linesize[0] < 0 && f->linesize[1] == 0;
+		if (flip)
+			frame->data[0] -= frame->linesize[0] * (f->height - 1);
 
-		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-			frame->data[i] = f->data[i];
-			frame->linesize[i] = abs(f->linesize[i]);
-		}
-	}
+		new_format = convert_pixel_format(m->scale_format);
+		new_space = convert_color_space(f->colorspace);
+		new_range = m->force_range == VIDEO_RANGE_DEFAULT
+			? convert_color_range(f->color_range)
+			: m->force_range;
 
-	if (flip)
-		frame->data[0] -= frame->linesize[0] * (f->height - 1);
+		if (new_format != frame->format ||
+			new_space != m->cur_space ||
+			new_range != m->cur_range) {
+			bool success;
 
-	new_format = convert_pixel_format(m->scale_format);
-	new_space  = convert_color_space(f->colorspace);
-	new_range  = m->force_range == VIDEO_RANGE_DEFAULT
-		? convert_color_range(f->color_range)
-		: m->force_range;
+			frame->format = new_format;
+			frame->full_range = new_range == VIDEO_RANGE_FULL;
 
-	if (new_format != frame->format ||
-	    new_space  != m->cur_space  ||
-	    new_range  != m->cur_range) {
-		bool success;
-
-		frame->format = new_format;
-		frame->full_range = new_range == VIDEO_RANGE_FULL;
-
-		success = video_format_get_parameters(
+			success = video_format_get_parameters(
 				new_space,
 				new_range,
 				frame->color_matrix,
 				frame->color_range_min,
 				frame->color_range_max);
 
-		frame->format = new_format;
-		m->cur_space = new_space;
-		m->cur_range = new_range;
+			frame->format = new_format;
+			m->cur_space = new_space;
+			m->cur_range = new_range;
 
-		if (!success) {
-			frame->format = VIDEO_FORMAT_NONE;
-			return;
+			if (!success) {
+				frame->format = VIDEO_FORMAT_NONE;
+				return;
+			}
 		}
-	}
 
-	if (frame->format == VIDEO_FORMAT_NONE)
-		return;
-
-	frame->timestamp = m->base_ts + d->frame_pts - m->start_ts +
-		m->play_sys_ts - base_sys_ts;
-	frame->width = f->width;
-	frame->height = f->height;
-	frame->flip = flip;
-
-	if (!m->is_local_file && !d->got_first_keyframe) {
-		if (!f->key_frame)
+		if (frame->format == VIDEO_FORMAT_NONE)
 			return;
 
-		d->got_first_keyframe = true;
+		frame->timestamp = m->base_ts + d->frame_pts - m->start_ts +
+			m->play_sys_ts - base_sys_ts;
+		frame->width = f->width;
+		frame->height = f->height;
+		frame->flip = flip;
+
+		if (!m->is_local_file && !d->got_first_keyframe) {
+			if (!f->key_frame)
+				return;
+
+			d->got_first_keyframe = true;
+		}
+		m->video_frames[m->index_video] = malloc(sizeof(struct obs_source_frame));
+		memcpy(m->video_frames[m->index_video], frame, sizeof(struct obs_source_frame));
+		memcpy(frame, m->video_frames[m->index_video], sizeof(struct obs_source_frame));
 	}
+	else {
+		blog(LOG_INFO, "cached, %d", m->index_video);
+		memcpy(frame, m->video_frames[m->index_video], sizeof(struct obs_source_frame));
+		frame->timestamp = m->base_ts + d->frame_pts - m->start_ts +
+			m->play_sys_ts - base_sys_ts;
+	}
+
+	m->index_video++;
 
 	if (preload)
 		m->v_preload_cb(m->opaque, frame);
@@ -505,6 +526,8 @@ static inline bool mp_media_eof(mp_media_t *m)
 			m->active = false;
 			m->stopping = true;
 		}
+		m->index_video_eof = m->index_video;
+		m->index_video = 0;
 		pthread_mutex_unlock(&m->mutex);
 
 		mp_media_reset(m);
@@ -666,6 +689,9 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	m->path = info->path ? bstrdup(info->path) : NULL;
 	m->format_name = info->format ? bstrdup(info->format) : NULL;
 	m->hw = info->hardware_decoding;
+
+	m->index_video_eof = -1;
+	m->index_video = 0;
 
 	if (pthread_create(&m->thread, NULL, mp_media_thread_start, m) != 0) {
 		blog(LOG_WARNING, "MP: Could not create media thread");
