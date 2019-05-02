@@ -260,23 +260,29 @@ static inline bool mp_media_can_play_frame(mp_media_t *m,
 static void mp_media_next_audio(mp_media_t *m)
 {
 	struct mp_decode *d = &m->a;
-	//struct obs_source_audio audio = {0};
 	AVFrame *f = d->frame;
 
-	if (!mp_media_can_play_frame(m, d))
-		return;
 
-	d->frame_ready = false;
-	if (!m->a_cb)
-		return;
 
 	if (m->index_audio_eof > 0 && m->index_audio == m->index_audio_eof)
 		m->index_audio = 0;
 
 	if (m->index_audio_eof < 0) {
 		blog(LOG_INFO, "decoding audio, %d", m->index_video);
-		for (size_t i = 0; i < MAX_AV_PLANES; i++)
-			m->audio_frames[m->index_audio].data[i] = f->data[i];
+
+		if (!mp_media_can_play_frame(m, d))
+			return;
+
+		d->frame_ready = false;
+		if (!m->a_cb)
+			return;
+
+		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
+			if (f->data[i]) {
+				m->audio_frames[m->index_audio].data[i] = malloc(f->linesize[0] / f->channels);
+				memcpy(m->audio_frames[m->index_audio].data[i], f->data[i], f->linesize[0] / f->channels);
+			}
+		}
 
 		m->audio_frames[m->index_audio].samples_per_sec = f->sample_rate * m->speed / 100;
 		m->audio_frames[m->index_audio].speakers = convert_speaker_layout(f->channels);
@@ -290,9 +296,6 @@ static void mp_media_next_audio(mp_media_t *m)
 	}
 	else {
 		blog(LOG_INFO, "cached audio, %d", m->index_audio);
-		//memcpy(&audio, m->audio_frames[m->index_audio], sizeof(struct obs_source_frame));
-		m->audio_frames[m->index_audio].timestamp = m->base_ts + d->frame_pts - m->start_ts +
-			m->play_sys_ts - base_sys_ts;
 	}
 
 	m->a_cb(m->opaque, &m->audio_frames[m->index_audio]);
