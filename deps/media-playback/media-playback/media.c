@@ -24,6 +24,8 @@
 
 #include <libavdevice/avdevice.h>
 #include <libavutil/imgutils.h>
+#include <windows.h>
+
 
 static int64_t base_sys_ts = 0;
 
@@ -258,7 +260,7 @@ static inline bool mp_media_can_play_frame(mp_media_t *m,
 static void mp_media_next_audio(mp_media_t *m)
 {
 	struct mp_decode *d = &m->a;
-	struct obs_source_audio audio = {0};
+	//struct obs_source_audio audio = {0};
 	AVFrame *f = d->frame;
 
 	if (!mp_media_can_play_frame(m, d))
@@ -268,26 +270,38 @@ static void mp_media_next_audio(mp_media_t *m)
 	if (!m->a_cb)
 		return;
 
-	for (size_t i = 0; i < MAX_AV_PLANES; i++)
-		audio.data[i] = f->data[i];
+	if (m->index_audio_eof > 0 && m->index_audio == m->index_audio_eof)
+		m->index_audio = 0;
 
-	audio.samples_per_sec = f->sample_rate * m->speed / 100;
-	audio.speakers = convert_speaker_layout(f->channels);
-	audio.format = convert_sample_format(f->format);
-	audio.frames = f->nb_samples;
-	audio.timestamp = m->base_ts + d->frame_pts - m->start_ts +
-		m->play_sys_ts - base_sys_ts;
+	if (m->index_audio_eof < 0) {
+		blog(LOG_INFO, "decoding audio, %d", m->index_video);
+		for (size_t i = 0; i < MAX_AV_PLANES; i++)
+			m->audio_frames[m->index_audio].data[i] = f->data[i];
 
-	if (audio.format == AUDIO_FORMAT_UNKNOWN)
-		return;
+		m->audio_frames[m->index_audio].samples_per_sec = f->sample_rate * m->speed / 100;
+		m->audio_frames[m->index_audio].speakers = convert_speaker_layout(f->channels);
+		m->audio_frames[m->index_audio].format = convert_sample_format(f->format);
+		m->audio_frames[m->index_audio].frames = f->nb_samples;
+		m->audio_frames[m->index_audio].timestamp = m->base_ts + d->frame_pts - m->start_ts +
+			m->play_sys_ts - base_sys_ts;
 
-	m->a_cb(m->opaque, &audio);
+		if (m->audio_frames[m->index_audio].format == AUDIO_FORMAT_UNKNOWN)
+			return;
+	}
+	else {
+		blog(LOG_INFO, "cached audio, %d", m->index_audio);
+		//memcpy(&audio, m->audio_frames[m->index_audio], sizeof(struct obs_source_frame));
+		m->audio_frames[m->index_audio].timestamp = m->base_ts + d->frame_pts - m->start_ts +
+			m->play_sys_ts - base_sys_ts;
+	}
+
+	m->a_cb(m->opaque, &m->audio_frames[m->index_audio]);
+	m->index_audio++;
 }
 
 static void mp_media_next_video(mp_media_t *m, bool preload)
 {
 	struct mp_decode *d = &m->v;
-	struct obs_source_frame *frame = &m->obsframe;
 	enum video_format new_format;
 	enum video_colorspace new_space;
 	enum video_range_type new_range;
@@ -308,10 +322,13 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 		return;
 	}
 
-	if (m->index_video_eof > 0 && m->index_video > m->index_video_eof)
+	if (m->index_video_eof > 0 && m->index_video == m->index_video_eof)
 		m->index_video = 0;
 
-	if (!m->video_frames[m->index_video]) {
+
+
+	if (m->index_video_eof < 0) {
+		struct obs_source_frame *frame = &m->obsframe;
 		blog(LOG_INFO, "decoding, %d", m->index_video);
 		bool flip = false;
 		if (m->swscale) {
@@ -387,23 +404,25 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 
 			d->got_first_keyframe = true;
 		}
-		m->video_frames[m->index_video] = malloc(sizeof(struct obs_source_frame));
-		memcpy(m->video_frames[m->index_video], frame, sizeof(struct obs_source_frame));
-		memcpy(frame, m->video_frames[m->index_video], sizeof(struct obs_source_frame));
+
+		m->video_frames[m->index_video] = obs_source_frame_create(
+			frame->format, frame->width, frame->height);
+
+		obs_source_frame_init(m->video_frames[m->index_video],
+			frame->format, frame->width, frame->height);
+
+		obs_source_frame_copy(m->video_frames[m->index_video], frame);
 	}
 	else {
 		blog(LOG_INFO, "cached, %d", m->index_video);
-		memcpy(frame, m->video_frames[m->index_video], sizeof(struct obs_source_frame));
-		frame->timestamp = m->base_ts + d->frame_pts - m->start_ts +
-			m->play_sys_ts - base_sys_ts;
 	}
 
-	m->index_video++;
-
 	if (preload)
-		m->v_preload_cb(m->opaque, frame);
+		m->v_preload_cb(m->opaque, m->video_frames[m->index_video]);
 	else
-		m->v_cb(m->opaque, frame);
+		m->v_cb(m->opaque, m->video_frames[m->index_video]);
+
+	m->index_video++;
 }
 
 static void mp_media_calc_next_ns(mp_media_t *m)
@@ -528,6 +547,8 @@ static inline bool mp_media_eof(mp_media_t *m)
 		}
 		m->index_video_eof = m->index_video;
 		m->index_video = 0;
+		m->index_audio_eof = m->index_audio;
+		m->index_audio = 0;
 		pthread_mutex_unlock(&m->mutex);
 
 		mp_media_reset(m);
@@ -644,13 +665,20 @@ static inline bool mp_media_thread(mp_media_t *m)
 
 		/* frames are ready */
 		if (is_active && !timeout) {
+			blog(LOG_INFO, "decoding / reading");
 			if (m->has_video)
 				mp_media_next_video(m, false);
 			if (m->has_audio)
 				mp_media_next_audio(m);
-
-			if (!mp_media_prepare_frames(m))
-				return false;
+			if (m->index_audio_eof < 0 || m->index_video_eof < 0) {
+				if (!mp_media_prepare_frames(m))
+					return false;
+			}
+			else {
+				m->v.frame_ready = true;
+				m->a.frame_ready = true;
+				Sleep(33);
+			}
 			if (mp_media_eof(m))
 				continue;
 
@@ -692,6 +720,8 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 
 	m->index_video_eof = -1;
 	m->index_video = 0;
+	m->index_audio_eof = -1;
+	m->index_audio = 0;
 
 	if (pthread_create(&m->thread, NULL, mp_media_thread_start, m) != 0) {
 		blog(LOG_WARNING, "MP: Could not create media thread");

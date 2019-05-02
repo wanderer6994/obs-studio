@@ -99,7 +99,7 @@ struct mp_media {
 	int index_audio;
 	int index_audio_eof;
 	struct obs_source_frame *video_frames[65536];
-	struct obs_source_frame *audio_frames[65536];
+	struct obs_source_audio audio_frames[65536];
 };
 
 typedef struct mp_media mp_media_t;
