@@ -95,6 +95,7 @@ struct mp_media {
 	bool thread_valid;
 	pthread_t thread;
 
+	bool caching;
 	int index_video;
 	int index_video_eof;
 	int index_audio;

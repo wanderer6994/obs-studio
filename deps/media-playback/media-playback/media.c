@@ -267,7 +267,7 @@ static void mp_media_next_audio(mp_media_t *m)
 		m->next_wait = 0;
 	}
 
-	if (m->index_audio_eof < 0) {
+	if (m->index_audio_eof < 0 || !m->caching) {
 
 		if (!mp_media_can_play_frame(m, d))
 			return;
@@ -279,9 +279,14 @@ static void mp_media_next_audio(mp_media_t *m)
 		struct obs_source_audio audio = { 0 };
 
 		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-			if (f->data[i]) {
-				audio.data[i] = malloc(f->linesize[0] / f->channels);
-				memcpy(audio.data[i], f->data[i], f->linesize[0] / f->channels);
+			if (m->caching) {
+				if (f->data[i]) {
+					audio.data[i] = malloc(f->linesize[0] / f->channels);
+					memcpy(audio.data[i], f->data[i], f->linesize[0] / f->channels);
+				}
+			}
+			else {
+				audio.data[i] = f->data[i];
 			}
 		}
 
@@ -312,6 +317,7 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 	enum video_colorspace new_space;
 	enum video_range_type new_range;
 	AVFrame *f = d->frame;
+	struct obs_source_frame *frame;
 
 	if (m->index_video_eof > 0 && m->index_video == m->index_video_eof) {
 		m->index_video = 0;
@@ -319,7 +325,7 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 		m->next_wait = 0;
 	}
 
-	if (m->index_video_eof < 0) {
+	if (m->index_video_eof < 0 || !m->caching) {
 		if (!preload) {
 			if (!mp_media_can_play_frame(m, d)) {
 				return;
@@ -335,7 +341,7 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			return;
 		}
 
-		struct obs_source_frame *frame = &m->obsframe;
+		struct obs_source_frame *current_frame = &m->obsframe;
 		bool flip = false;
 		if (m->swscale) {
 			int ret = sws_scale(m->swscale,
@@ -347,8 +353,8 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 
 			flip = m->scale_linesizes[0] < 0 && m->scale_linesizes[1] == 0;
 			for (size_t i = 0; i < 4; i++) {
-				frame->data[i] = m->scale_pic[i];
-				frame->linesize[i] = abs(m->scale_linesizes[i]);
+				current_frame->data[i] = m->scale_pic[i];
+				current_frame->linesize[i] = abs(m->scale_linesizes[i]);
 			}
 
 		}
@@ -356,13 +362,13 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			flip = f->linesize[0] < 0 && f->linesize[1] == 0;
 
 			for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-				frame->data[i] = f->data[i];
-				frame->linesize[i] = abs(f->linesize[i]);
+				current_frame->data[i] = f->data[i];
+				current_frame->linesize[i] = abs(f->linesize[i]);
 			}
 		}
 
 		if (flip)
-			frame->data[0] -= frame->linesize[0] * (f->height - 1);
+			current_frame->data[0] -= current_frame->linesize[0] * (f->height - 1);
 
 		new_format = convert_pixel_format(m->scale_format);
 		new_space = convert_color_space(f->colorspace);
@@ -370,39 +376,39 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			? convert_color_range(f->color_range)
 			: m->force_range;
 
-		if (new_format != frame->format ||
+		if (new_format != current_frame->format ||
 			new_space != m->cur_space ||
 			new_range != m->cur_range) {
 			bool success;
 
-			frame->format = new_format;
-			frame->full_range = new_range == VIDEO_RANGE_FULL;
+			current_frame->format = new_format;
+			current_frame->full_range = new_range == VIDEO_RANGE_FULL;
 
 			success = video_format_get_parameters(
 				new_space,
 				new_range,
-				frame->color_matrix,
-				frame->color_range_min,
-				frame->color_range_max);
+				current_frame->color_matrix,
+				current_frame->color_range_min,
+				current_frame->color_range_max);
 
-			frame->format = new_format;
+			current_frame->format = new_format;
 			m->cur_space = new_space;
 			m->cur_range = new_range;
 
 			if (!success) {
-				frame->format = VIDEO_FORMAT_NONE;
+				current_frame->format = VIDEO_FORMAT_NONE;
 				return;
 			}
 		}
 
-		if (frame->format == VIDEO_FORMAT_NONE)
+		if (current_frame->format == VIDEO_FORMAT_NONE)
 			return;
 
-		frame->timestamp = m->base_ts + d->frame_pts - m->start_ts +
+		current_frame->timestamp = m->base_ts + d->frame_pts - m->start_ts +
 			m->play_sys_ts - base_sys_ts;
-		frame->width = f->width;
-		frame->height = f->height;
-		frame->flip = flip;
+		current_frame->width = f->width;
+		current_frame->height = f->height;
+		current_frame->flip = flip;
 
 		if (!m->is_local_file && !d->got_first_keyframe) {
 			if (!f->key_frame)
@@ -411,25 +417,34 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			d->got_first_keyframe = true;
 		}
 
-		struct obs_source_frame *new_frame = obs_source_frame_create(
-			frame->format, frame->width, frame->height);
+		if (m->caching) {
+			struct obs_source_frame *new_frame = obs_source_frame_create(
+				current_frame->format, current_frame->width, current_frame->height);
 
-		obs_source_frame_copy(new_frame, frame);
+			obs_source_frame_copy(new_frame, current_frame);
 
-		if (m->index_video > 0) {
-			struct obs_source_frame *previous_frame = m->video_frames.array[m->index_video - 1];
-			m->refresh_rate_ns_video = frame->timestamp - previous_frame->timestamp;
+			if (m->index_video > 0) {
+				struct obs_source_frame *previous_frame = m->video_frames.array[m->index_video - 1];
+				m->refresh_rate_ns_video = new_frame->timestamp - previous_frame->timestamp;
+			}
+
+			da_push_back(m->video_frames, &new_frame);
+			frame = new_frame;
+			m->index_video++;
 		}
-
-		da_push_back(m->video_frames, &new_frame);
+		else {
+			frame = current_frame;
+		}
+	}
+	else if (m->caching) {
+		frame = m->video_frames.array[m->index_video];
+		m->index_video++;
 	}
 
 	if (preload)
-		m->v_preload_cb(m->opaque, m->video_frames.array[m->index_video]);
+		m->v_preload_cb(m->opaque, frame);
 	else
-		m->v_cb(m->opaque, m->video_frames.array[m->index_video]);
-
-	m->index_video++;
+		m->v_cb(m->opaque, frame);
 }
 
 static void mp_media_calc_next_ns(mp_media_t *m)
@@ -696,7 +711,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 				mp_media_next_video(m, false);
 			if (m->has_audio)
 				mp_media_next_audio(m);
-			if (m->index_audio_eof < 0 || m->index_video_eof < 0) {
+			if (m->index_audio_eof < 0 || m->index_video_eof < 0 || !m->caching) {
 				if (!mp_media_prepare_frames(m))
 					return false;
 			}
@@ -768,6 +783,7 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	da_init(m->video_frames);
 	da_init(m->audio_frames);
 
+	m->caching = true;
 	m->index_video_eof = -1;
 	m->index_video = 0;
 	m->index_audio_eof = -1;
