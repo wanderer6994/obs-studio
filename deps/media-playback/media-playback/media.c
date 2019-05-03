@@ -414,9 +414,6 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 		struct obs_source_frame *new_frame = obs_source_frame_create(
 			frame->format, frame->width, frame->height);
 
-		obs_source_frame_init(new_frame,
-			frame->format, frame->width, frame->height);
-
 		obs_source_frame_copy(new_frame, frame);
 
 		if (m->index_video > 0) {
@@ -450,6 +447,23 @@ static void mp_media_calc_next_ns(mp_media_t *m)
 
 	m->next_ns += delta;
 	m->next_pts_ns = min_next_ns;
+}
+
+static inline void clear_cache(mp_media_t *m)
+{
+	if (m->video_frames.num > 0) {
+		for (size_t i = 0; i < m->index_video_eof; i++) {
+			obs_source_frame_free(m->video_frames.array[i]);
+		}
+	}
+	if (m->audio_frames.num > 0) {
+		for (size_t i = 0; i < m->index_audio_eof; i++) {
+			for (size_t j = 0; j < MAX_AV_PLANES; j++)
+				free(m->audio_frames.array[i].data[j]);
+		}
+	}
+	da_free(m->video_frames);
+	da_free(m->audio_frames);
 }
 
 static bool mp_media_reset(mp_media_t *m)
@@ -514,8 +528,10 @@ static bool mp_media_reset(mp_media_t *m)
 
 	if (!active && m->is_local_file && m->v_preload_cb)
 		mp_media_next_video(m, true);
-	if (stopping && m->stop_cb)
+	if (stopping && m->stop_cb) {
+		clear_cache(m);
 		m->stop_cb(m->opaque);
+	}
 	return true;
 }
 
@@ -812,6 +828,7 @@ static void mp_kill_thread(mp_media_t *m)
 {
 	if (m->thread_valid) {
 		pthread_mutex_lock(&m->mutex);
+		clear_cache(m);
 		m->kill = true;
 		pthread_mutex_unlock(&m->mutex);
 		os_sem_post(m->sem);
