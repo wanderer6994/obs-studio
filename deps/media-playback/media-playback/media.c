@@ -750,6 +750,7 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	m->hw = info->hardware_decoding;
 
 	da_init(m->video_frames);
+	da_init(m->audio_frames);
 
 	m->index_video_eof = -1;
 	m->index_video = 0;
