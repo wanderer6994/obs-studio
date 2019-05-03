@@ -692,14 +692,13 @@ static inline bool mp_media_thread(mp_media_t *m)
 						else {
 							sleeping_time = m->refresh_rate_ns_video - time_spent;
 						}
-
 						Sleep(sleeping_time / 1000000);
 						mp_media_next_audio(m);
 						time_spent += sleeping_time;
 					}
 				}
 				else {
-					// TO DO
+					Sleep(m->refresh_rate_ns_video / 1000000);
 				}
 				m->a.frame_ready = true;
 				m->v.frame_ready = true;
