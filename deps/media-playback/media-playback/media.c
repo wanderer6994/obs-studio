@@ -466,19 +466,21 @@ static void mp_media_calc_next_ns(mp_media_t *m)
 
 static inline void clear_cache(mp_media_t *m)
 {
-	if (m->video_frames.num > 0) {
-		for (size_t i = 0; i < m->index_video_eof; i++) {
-			obs_source_frame_free(m->video_frames.array[i]);
+	if (m->caching) {
+		if (m->video_frames.num > 0) {
+			for (size_t i = 0; i < m->index_video_eof; i++) {
+				obs_source_frame_free(m->video_frames.array[i]);
+			}
 		}
-	}
-	if (m->audio_frames.num > 0) {
-		for (size_t i = 0; i < m->index_audio_eof; i++) {
-			for (size_t j = 0; j < MAX_AV_PLANES; j++)
-				free(m->audio_frames.array[i].data[j]);
+		if (m->audio_frames.num > 0) {
+			for (size_t i = 0; i < m->index_audio_eof; i++) {
+				for (size_t j = 0; j < MAX_AV_PLANES; j++)
+					free(m->audio_frames.array[i].data[j]);
+			}
 		}
+		da_free(m->video_frames);
+		da_free(m->audio_frames);
 	}
-	da_free(m->video_frames);
-	da_free(m->audio_frames);
 }
 
 static bool mp_media_reset(mp_media_t *m)
@@ -783,7 +785,7 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	da_init(m->video_frames);
 	da_init(m->audio_frames);
 
-	m->caching = true;
+	m->caching = m->looping;
 	m->index_video_eof = -1;
 	m->index_video = 0;
 	m->index_audio_eof = -1;
@@ -881,6 +883,7 @@ void mp_media_play(mp_media_t *m, bool loop)
 		m->reset = true;
 
 	m->looping = loop;
+	m->caching = loop;
 	m->active = true;
 
 	pthread_mutex_unlock(&m->mutex);
