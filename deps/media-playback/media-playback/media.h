@@ -33,6 +33,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 #include <util/threading.h>
+#include "util/darray.h"
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -98,8 +99,8 @@ struct mp_media {
 	int index_video_eof;
 	int index_audio;
 	int index_audio_eof;
-	struct obs_source_frame *video_frames[65536];
-	struct obs_source_audio audio_frames[65536];
+	DARRAY(struct obs_source_frame*) video_frames;
+	DARRAY(struct obs_source_audio) audio_frames;
 	int64_t refresh_rate_ns_video;
 	int64_t last_processed_ns_video;
 	int64_t refresh_rate_ns_audio;

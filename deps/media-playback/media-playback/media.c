@@ -276,29 +276,32 @@ static void mp_media_next_audio(mp_media_t *m)
 		if (!m->a_cb)
 			return;
 
+		struct obs_source_audio audio = { 0 };
+
 		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
 			if (f->data[i]) {
-				m->audio_frames[m->index_audio].data[i] = malloc(f->linesize[0] / f->channels);
-				memcpy(m->audio_frames[m->index_audio].data[i], f->data[i], f->linesize[0] / f->channels);
+				audio.data[i] = malloc(f->linesize[0] / f->channels);
+				memcpy(audio.data[i], f->data[i], f->linesize[0] / f->channels);
 			}
 		}
 
-		m->audio_frames[m->index_audio].samples_per_sec = f->sample_rate * m->speed / 100;
-		m->audio_frames[m->index_audio].speakers = convert_speaker_layout(f->channels);
-		m->audio_frames[m->index_audio].format = convert_sample_format(f->format);
-		m->audio_frames[m->index_audio].frames = f->nb_samples;
-		m->audio_frames[m->index_audio].timestamp = m->base_ts + d->frame_pts - m->start_ts +
+		audio.samples_per_sec = f->sample_rate * m->speed / 100;
+		audio.speakers = convert_speaker_layout(f->channels);
+		audio.format = convert_sample_format(f->format);
+		audio.frames = f->nb_samples;
+		audio.timestamp = m->base_ts + d->frame_pts - m->start_ts +
 			m->play_sys_ts - base_sys_ts;
 
-		if (m->audio_frames[m->index_audio].format == AUDIO_FORMAT_UNKNOWN)
+		if (audio.format == AUDIO_FORMAT_UNKNOWN)
 			return;
 
 		if (m->index_audio > 0) {
 			m->refresh_rate_ns_audio =
-				m->audio_frames[m->index_audio].timestamp - m->audio_frames[m->index_audio - 1].timestamp;
+				audio.timestamp - m->audio_frames.array[m->index_audio - 1].timestamp;
 		}
+		da_push_back(m->audio_frames, &audio);
 	}
-	m->a_cb(m->opaque, &m->audio_frames[m->index_audio]);
+	m->a_cb(m->opaque, &m->audio_frames.array[m->index_audio]);
 	m->index_audio++;
 }
 
@@ -408,22 +411,26 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			d->got_first_keyframe = true;
 		}
 
-		m->video_frames[m->index_video] = obs_source_frame_create(
+		struct obs_source_frame *new_frame = obs_source_frame_create(
 			frame->format, frame->width, frame->height);
 
-		obs_source_frame_init(m->video_frames[m->index_video],
+		obs_source_frame_init(new_frame,
 			frame->format, frame->width, frame->height);
 
-		obs_source_frame_copy(m->video_frames[m->index_video], frame);
+		obs_source_frame_copy(new_frame, frame);
 
 		if (m->index_video > 0) {
-			m->refresh_rate_ns_video = frame->timestamp - m->video_frames[m->index_video - 1]->timestamp;
+			struct obs_source_frame *previous_frame = m->video_frames.array[m->index_video - 1];
+			m->refresh_rate_ns_video = frame->timestamp - previous_frame->timestamp;
 		}
+
+		da_push_back(m->video_frames, &new_frame);
 	}
+
 	if (preload)
-		m->v_preload_cb(m->opaque, m->video_frames[m->index_video]);
+		m->v_preload_cb(m->opaque, m->video_frames.array[m->index_video]);
 	else
-		m->v_cb(m->opaque, m->video_frames[m->index_video]);
+		m->v_cb(m->opaque, m->video_frames.array[m->index_video]);
 
 	m->index_video++;
 }
@@ -741,6 +748,8 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	m->path = info->path ? bstrdup(info->path) : NULL;
 	m->format_name = info->format ? bstrdup(info->format) : NULL;
 	m->hw = info->hardware_decoding;
+
+	da_init(m->video_frames);
 
 	m->index_video_eof = -1;
 	m->index_video = 0;
