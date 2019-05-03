@@ -100,6 +100,12 @@ struct mp_media {
 	int index_audio_eof;
 	struct obs_source_frame *video_frames[65536];
 	struct obs_source_audio audio_frames[65536];
+	int64_t refresh_rate_ns_video;
+	int64_t last_processed_ns_video;
+	int64_t refresh_rate_ns_audio;
+	int64_t last_processed_ns_audio;
+
+	int64_t next_wait;
 };
 
 typedef struct mp_media mp_media_t;

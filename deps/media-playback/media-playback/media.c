@@ -262,13 +262,12 @@ static void mp_media_next_audio(mp_media_t *m)
 	struct mp_decode *d = &m->a;
 	AVFrame *f = d->frame;
 
-
-
-	if (m->index_audio_eof > 0 && m->index_audio == m->index_audio_eof)
+	if (m->index_audio_eof > 0 && m->index_audio == m->index_audio_eof) {
 		m->index_audio = 0;
+		m->next_wait = 0;
+	}
 
 	if (m->index_audio_eof < 0) {
-		blog(LOG_INFO, "decoding audio, %d", m->index_video);
 
 		if (!mp_media_can_play_frame(m, d))
 			return;
@@ -293,11 +292,12 @@ static void mp_media_next_audio(mp_media_t *m)
 
 		if (m->audio_frames[m->index_audio].format == AUDIO_FORMAT_UNKNOWN)
 			return;
-	}
-	else {
-		blog(LOG_INFO, "cached audio, %d", m->index_audio);
-	}
 
+		if (m->index_audio > 0) {
+			m->refresh_rate_ns_audio =
+				m->audio_frames[m->index_audio].timestamp - m->audio_frames[m->index_audio - 1].timestamp;
+		}
+	}
 	m->a_cb(m->opaque, &m->audio_frames[m->index_audio]);
 	m->index_audio++;
 }
@@ -310,29 +310,29 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 	enum video_range_type new_range;
 	AVFrame *f = d->frame;
 
-	if (!preload) {
-		if (!mp_media_can_play_frame(m, d)) {
-			return;
-		}
-
-		d->frame_ready = false;
-
-		if (!m->v_cb) {
-			return;
-		}
-	}
-	else if (!d->frame_ready) {
-		return;
-	}
-
-	if (m->index_video_eof > 0 && m->index_video == m->index_video_eof)
+	if (m->index_video_eof > 0 && m->index_video == m->index_video_eof) {
 		m->index_video = 0;
-
-
+		m->index_audio = 0;
+		m->next_wait = 0;
+	}
 
 	if (m->index_video_eof < 0) {
+		if (!preload) {
+			if (!mp_media_can_play_frame(m, d)) {
+				return;
+			}
+
+			d->frame_ready = false;
+
+			if (!m->v_cb) {
+				return;
+			}
+		}
+		else if (!d->frame_ready) {
+			return;
+		}
+
 		struct obs_source_frame *frame = &m->obsframe;
-		blog(LOG_INFO, "decoding, %d", m->index_video);
 		bool flip = false;
 		if (m->swscale) {
 			int ret = sws_scale(m->swscale,
@@ -415,11 +415,11 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			frame->format, frame->width, frame->height);
 
 		obs_source_frame_copy(m->video_frames[m->index_video], frame);
-	}
-	else {
-		blog(LOG_INFO, "cached, %d", m->index_video);
-	}
 
+		if (m->index_video > 0) {
+			m->refresh_rate_ns_video = frame->timestamp - m->video_frames[m->index_video - 1]->timestamp;
+		}
+	}
 	if (preload)
 		m->v_preload_cb(m->opaque, m->video_frames[m->index_video]);
 	else
@@ -552,6 +552,7 @@ static inline bool mp_media_eof(mp_media_t *m)
 		m->index_video = 0;
 		m->index_audio_eof = m->index_audio;
 		m->index_audio = 0;
+		m->next_wait = 0;
 		pthread_mutex_unlock(&m->mutex);
 
 		mp_media_reset(m);
@@ -668,7 +669,6 @@ static inline bool mp_media_thread(mp_media_t *m)
 
 		/* frames are ready */
 		if (is_active && !timeout) {
-			blog(LOG_INFO, "decoding / reading");
 			if (m->has_video)
 				mp_media_next_video(m, false);
 			if (m->has_audio)
@@ -678,9 +678,31 @@ static inline bool mp_media_thread(mp_media_t *m)
 					return false;
 			}
 			else {
-				m->v.frame_ready = true;
+				if (m->refresh_rate_ns_video > m->refresh_rate_ns_audio) {
+					int64_t time_spent = 0;
+					while (time_spent < m->refresh_rate_ns_video) {
+						int sleeping_time = 0;
+						if (m->refresh_rate_ns_audio - time_spent > 0) {
+							if (m->next_wait > 0) {
+								time_spent -= m->next_wait;
+								m->next_wait = 0;
+							}
+							sleeping_time  = m->refresh_rate_ns_audio - time_spent;
+						}
+						else {
+							sleeping_time = m->refresh_rate_ns_video - time_spent;
+						}
+
+						Sleep(sleeping_time / 1000000);
+						mp_media_next_audio(m);
+						time_spent += sleeping_time;
+					}
+				}
+				else {
+					// TO DO
+				}
 				m->a.frame_ready = true;
-				Sleep(33);
+				m->v.frame_ready = true;
 			}
 			if (mp_media_eof(m))
 				continue;
@@ -725,6 +747,11 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	m->index_video = 0;
 	m->index_audio_eof = -1;
 	m->index_audio = 0;
+	m->refresh_rate_ns_video = -1;
+	m->last_processed_ns_video = -1;
+	m->refresh_rate_ns_audio = -1;
+	m->last_processed_ns_audio = -1;
+	m->next_wait = 0;
 
 	if (pthread_create(&m->thread, NULL, mp_media_thread_start, m) != 0) {
 		blog(LOG_WARNING, "MP: Could not create media thread");
