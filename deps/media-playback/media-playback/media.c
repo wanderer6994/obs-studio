@@ -267,7 +267,7 @@ static void mp_media_next_audio(mp_media_t *m)
 		m->next_wait = 0;
 	}
 
-	if (m->index_audio_eof < 0 || !m->caching) {
+	if (m->index_audio_eof < 0) {
 
 		if (!mp_media_can_play_frame(m, d))
 			return;
@@ -279,14 +279,9 @@ static void mp_media_next_audio(mp_media_t *m)
 		struct obs_source_audio audio = { 0 };
 
 		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-			if (m->caching) {
-				if (f->data[i]) {
-					audio.data[i] = malloc(f->linesize[0] / f->channels);
-					memcpy(audio.data[i], f->data[i], f->linesize[0] / f->channels);
-				}
-			}
-			else {
-				audio.data[i] = f->data[i];
+			if (f->data[i]) {
+				audio.data[i] = malloc(f->linesize[0] / f->channels);
+				memcpy(audio.data[i], f->data[i], f->linesize[0] / f->channels);
 			}
 		}
 
@@ -306,8 +301,10 @@ static void mp_media_next_audio(mp_media_t *m)
 		}
 		da_push_back(m->audio_frames, &audio);
 	}
-	m->a_cb(m->opaque, &m->audio_frames.array[m->index_audio]);
-	m->index_audio++;
+	if (m->audio_frames.num > 0) {
+		m->a_cb(m->opaque, &m->audio_frames.array[m->index_audio]);
+		m->index_audio++;
+	}
 }
 
 static void mp_media_next_video(mp_media_t *m, bool preload)
