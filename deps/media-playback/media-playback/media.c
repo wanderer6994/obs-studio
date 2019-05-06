@@ -843,12 +843,12 @@ static void mp_kill_thread(mp_media_t *m)
 {
 	if (m->thread_valid) {
 		pthread_mutex_lock(&m->mutex);
-		clear_cache(m);
 		m->kill = true;
 		pthread_mutex_unlock(&m->mutex);
 		os_sem_post(m->sem);
 
 		pthread_join(m->thread, NULL);
+		clear_cache(m);
 	}
 }
 
