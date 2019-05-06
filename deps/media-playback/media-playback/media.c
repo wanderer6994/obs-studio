@@ -540,10 +540,8 @@ static bool mp_media_reset(mp_media_t *m)
 
 	if (!active && m->is_local_file && m->v_preload_cb)
 		mp_media_next_video(m, true);
-	if (stopping && m->stop_cb) {
-		//clear_cache(m);
+	if (stopping && m->stop_cb)
 		m->stop_cb(m->opaque);
-	}
 	return true;
 }
 
