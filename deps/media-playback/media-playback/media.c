@@ -24,7 +24,6 @@
 
 #include <libavdevice/avdevice.h>
 #include <libavutil/imgutils.h>
-#include <windows.h>
 
 
 static int64_t base_sys_ts = 0;
@@ -728,13 +727,13 @@ static inline bool mp_media_thread(mp_media_t *m)
 						else {
 							sleeping_time = m->refresh_rate_ns_video - time_spent;
 						}
-						Sleep(sleeping_time / 1000000);
+						os_sleep_ms(sleeping_time / 1000000);
 						mp_media_next_audio(m);
 						time_spent += sleeping_time;
 					}
 				}
 				else {
-					Sleep(m->refresh_rate_ns_video / 1000000);
+					os_sleep_ms(m->refresh_rate_ns_video / 1000000);
 				}
 				m->a.frame_ready = true;
 				m->v.frame_ready = true;
