@@ -43,6 +43,14 @@ typedef void (*mp_video_cb)(void *opaque, struct obs_source_frame *frame);
 typedef void (*mp_audio_cb)(void *opaque, struct obs_source_audio *audio);
 typedef void (*mp_stop_cb)(void *opaque);
 
+struct cached_data {
+	int index;
+	int index_eof;
+	DARRAY(void*) data;
+	int64_t refresh_rate_ns;
+	int64_t last_processed_ns;
+};
+
 struct mp_media {
 	AVFormatContext *fmt;
 
@@ -96,17 +104,8 @@ struct mp_media {
 	pthread_t thread;
 
 	bool caching;
-	int index_video;
-	int index_video_eof;
-	int index_audio;
-	int index_audio_eof;
-	DARRAY(struct obs_source_frame*) video_frames;
-	DARRAY(struct obs_source_audio) audio_frames;
-	int64_t refresh_rate_ns_video;
-	int64_t last_processed_ns_video;
-	int64_t refresh_rate_ns_audio;
-	int64_t last_processed_ns_audio;
-
+	struct cached_data video;
+	struct cached_data audio;
 	int64_t next_wait;
 };
 
