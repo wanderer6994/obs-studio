@@ -25,7 +25,6 @@
 #include <libavdevice/avdevice.h>
 #include <libavutil/imgutils.h>
 
-
 static int64_t base_sys_ts = 0;
 
 static inline enum video_format convert_pixel_format(int f)
