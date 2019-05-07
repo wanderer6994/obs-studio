@@ -290,8 +290,12 @@ static void mp_media_next_audio(mp_media_t *m)
 		audio->timestamp = m->base_ts + d->frame_pts - m->start_ts +
 			m->play_sys_ts - base_sys_ts;
 
-		if (audio->format == AUDIO_FORMAT_UNKNOWN)
+		if (audio->format == AUDIO_FORMAT_UNKNOWN) {
+			for (size_t j = 0; j < MAX_AV_PLANES; j++) {
+				free(audio->data[j]);
+			}
 			return;
+		}
 
 		if (m->audio.index > 0) {
 			struct obs_source_audio *previous_frame = m->audio.data.array[m->audio.index - 1];
