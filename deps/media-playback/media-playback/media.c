@@ -294,6 +294,7 @@ static void mp_media_next_audio(mp_media_t *m)
 			for (size_t j = 0; j < MAX_AV_PLANES; j++) {
 				free(audio->data[j]);
 			}
+			free(audio);
 			return;
 		}
 
@@ -476,7 +477,6 @@ static inline void clear_cache(mp_media_t *m)
 			for (size_t j = 0; j < MAX_AV_PLANES; j++) {
 				free(((struct obs_source_audio*)m->audio.data.array[i])->data[j]);
 			}
-				
 		}
 	}
 	da_free(m->video.data);
