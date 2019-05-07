@@ -871,7 +871,7 @@ void mp_media_play(mp_media_t *m, bool loop)
 		m->reset = true;
 
 	m->looping = loop;
-	m->caching = loop;
+	m->caching = loop && m->is_local_file;
 	m->active = true;
 
 	pthread_mutex_unlock(&m->mutex);
