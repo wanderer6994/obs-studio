@@ -99,47 +99,26 @@ static inline struct mp_decode *get_packet_decoder(mp_media_t *media,
 
 static int mp_media_next_packet(mp_media_t *media)
 {
-	int ret = 0;
 	AVPacket new_pkt;
 	AVPacket pkt;
 	av_init_packet(&pkt);
 	new_pkt = pkt;
 
-	if (media->packets[media->index].packet.size == 0) {
-		av_init_packet(&media->packets[media->index].packet);
-		ret = av_read_frame(media->fmt, &media->packets[media->index].packet);
-		if (ret < 0) {
-			if (ret != AVERROR_EOF)
-				blog(LOG_WARNING, "MP: av_read_frame failed: %s (%d)",
+	int ret = av_read_frame(media->fmt, &pkt);
+	if (ret < 0) {
+		if (ret != AVERROR_EOF)
+			blog(LOG_WARNING, "MP: av_read_frame failed: %s (%d)",
 					av_err2str(ret), ret);
-			return ret;
-		}
-
-	}
-	else {
-		int i = 0;
-		//ret = av_read_frame(media->fmt, &pkt);
-		//if (ret < 0) {
-		//	if (ret != AVERROR_EOF)
-		//		blog(LOG_WARNING, "MP: av_read_frame failed: %s (%d)",
-		//			av_err2str(ret), ret);
-		//	return ret;
-		//}
-		//struct mp_decode *d = get_packet_decoder(media, &pkt);
-		//if (d && pkt.size) {
-		//	blog(LOG_INFO, "Decoding %d", media->index);
-		//	av_packet_ref(&new_pkt, &pkt);
-		//}
-	}
-	media->packets[media->index].d = get_packet_decoder(media, &media->packets[media->index].packet);
-	if (media->packets[media->index].d && media->packets[media->index].packet.size) {
-		//blog(LOG_INFO, "Decoding %d", media->index);
-		av_packet_ref(&new_pkt, &media->packets[media->index].packet);
+		return ret;
 	}
 
-	mp_decode_push_packet(media->packets[media->index].d, &new_pkt);
-	media->index++;
-	//av_packet_unref(&pkt);
+	struct mp_decode *d = get_packet_decoder(media, &pkt);
+	if (d && pkt.size) {
+		av_packet_ref(&new_pkt, &pkt);
+		mp_decode_push_packet(d, &new_pkt);
+	}
+
+	av_packet_unref(&pkt);
 	return ret;
 }
 
@@ -411,9 +390,9 @@ static void mp_media_calc_next_ns(mp_media_t *m)
 	int64_t min_next_ns = mp_media_get_next_min_pts(m);
 
 	int64_t delta = min_next_ns - m->next_pts_ns;
-//#ifdef _DEBUG
-//	assert(delta >= 0);
-//#endif
+#ifdef _DEBUG
+	assert(delta >= 0);
+#endif
 	if (delta < 0)
 		delta = 0;
 	if (delta > 3000000000)
@@ -521,8 +500,6 @@ static inline bool mp_media_eof(mp_media_t *m)
 		bool looping;
 
 		pthread_mutex_lock(&m->mutex);
-		blog(LOG_INFO, "Setting Index to 0");
-		m->index = 0;
 		looping = m->looping;
 		if (!looping) {
 			m->active = false;
@@ -609,8 +586,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 	if (!mp_media_reset(m)) {
 		return false;
 	}
-	//blog(LOG_INFO, "Setting Index to 0");
-	//m->index = 0;
+
 	for (;;) {
 		bool reset, kill, is_active;
 		bool timeout = false;
@@ -728,7 +704,7 @@ bool mp_media_init(mp_media_t *media, const struct mp_media_info *info)
 
 	if (!base_sys_ts)
 		base_sys_ts = (int64_t)os_gettime_ns();
-	media->index = 0;
+
 	if (!mp_media_init_internal(media, info)) {
 		mp_media_free(media);
 		return false;

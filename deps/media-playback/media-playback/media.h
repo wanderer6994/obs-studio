@@ -42,11 +42,6 @@ typedef void (*mp_video_cb)(void *opaque, struct obs_source_frame *frame);
 typedef void (*mp_audio_cb)(void *opaque, struct obs_source_audio *audio);
 typedef void (*mp_stop_cb)(void *opaque);
 
-struct cached_packet {
-	AVPacket packet;
-	struct mp_decode * d;
-};
-
 struct mp_media {
 	AVFormatContext *fmt;
 
@@ -98,9 +93,6 @@ struct mp_media {
 
 	bool thread_valid;
 	pthread_t thread;
-
-	struct cached_packet packets[65536];
-	int index;
 };
 
 typedef struct mp_media mp_media_t;
