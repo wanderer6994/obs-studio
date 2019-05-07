@@ -265,7 +265,7 @@ static void mp_media_next_audio(mp_media_t *m)
 		m->next_wait = 0;
 	}
 
-	if (m->audio.index_eof < 0) {
+	if (m->audio.index_eof < 0 || !m->caching) {
 
 		if (!mp_media_can_play_frame(m, d))
 			return;
@@ -890,6 +890,8 @@ void mp_media_play(mp_media_t *m, bool loop)
 		m->reset = true;
 
 	m->looping = loop;
+	if (m->fmt)
+		m->caching = m->looping && m->is_local_file && allow_cache(m);
 	m->active = true;
 
 	pthread_mutex_unlock(&m->mutex);
