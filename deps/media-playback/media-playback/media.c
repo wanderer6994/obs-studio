@@ -612,6 +612,25 @@ static int interrupt_callback(void *data)
 	return stop;
 }
 
+static bool allow_cache(mp_media_t *m)
+{
+	int video_stream_index = av_find_best_stream(m->fmt,
+		AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+	AVStream *stream = m->fmt->streams[video_stream_index];
+	AVRational avg_frame_rate = stream->avg_frame_rate;
+	int64_t frames = (int64_t)ceil((double)m->fmt->duration /
+		(double)AV_TIME_BASE *
+		(double)avg_frame_rate.num /
+		(double)avg_frame_rate.den);
+
+	int width = stream->codec->width;
+	int height = stream->codec->height;
+
+	// File size in MB
+	double file_size = width * height * 1.5 * frames / 1000000;
+	return file_size < 1024;
+}
+
 static bool init_avformat(mp_media_t *m)
 {
 	AVInputFormat *format = NULL;
@@ -655,6 +674,7 @@ static bool init_avformat(mp_media_t *m)
 		return false;
 	}
 
+	m->caching = m->looping && m->is_local_file && allow_cache(m);
 	return true;
 }
 
@@ -782,7 +802,6 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	da_init(m->video.data);
 	da_init(m->audio.data);
 
-	m->caching = m->looping;
 	m->next_wait = 0;
 
 	if (pthread_create(&m->thread, NULL, mp_media_thread_start, m) != 0) {
@@ -871,7 +890,6 @@ void mp_media_play(mp_media_t *m, bool loop)
 		m->reset = true;
 
 	m->looping = loop;
-	m->caching = loop && m->is_local_file;
 	m->active = true;
 
 	pthread_mutex_unlock(&m->mutex);
