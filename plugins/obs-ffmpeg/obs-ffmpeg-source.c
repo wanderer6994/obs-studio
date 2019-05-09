@@ -57,6 +57,7 @@ struct ffmpeg_source {
 	bool restart_on_activate;
 	bool close_when_inactive;
 	bool seekable;
+	bool enable_caching;
 };
 
 static bool is_local_file_modified(obs_properties_t *props,
@@ -97,6 +98,7 @@ static void ffmpeg_source_defaults(obs_data_t *settings)
 #endif
 	obs_data_set_default_int(settings, "buffering_mb", 2);
 	obs_data_set_default_int(settings, "speed_percent", 100);
+	obs_data_set_default_bool(settings, "caching", true);
 }
 
 static const char *media_filter =
@@ -190,6 +192,9 @@ static obs_properties_t *ffmpeg_source_getproperties(void *data)
 
 	obs_properties_add_bool(props, "seekable", obs_module_text("Seekable"));
 
+	const char* text = obs_module_text("EnableCaching");
+	obs_properties_add_bool(props, "caching", obs_module_text("EnableCaching"));
+
 	return props;
 }
 
@@ -205,7 +210,8 @@ static void dump_source_info(struct ffmpeg_source *s, const char *input,
 			"\tis_hw_decoding:          %s\n"
 			"\tis_clear_on_media_end:   %s\n"
 			"\trestart_on_activate:     %s\n"
-			"\tclose_when_inactive:     %s",
+			"\tclose_when_inactive:     %s\n"
+			"\tenable_caching:          %s",
 			input ? input : "(null)",
 			input_format ? input_format : "(null)",
 			s->speed_percent,
@@ -213,7 +219,8 @@ static void dump_source_info(struct ffmpeg_source *s, const char *input,
 			s->is_hw_decoding ? "yes" : "no",
 			s->is_clear_on_media_end ? "yes" : "no",
 			s->restart_on_activate ? "yes" : "no",
-			s->close_when_inactive ? "yes" : "no");
+			s->close_when_inactive ? "yes" : "no",
+			s->enable_caching ? "yes" : "no");
 }
 
 static void get_frame(void *opaque, struct obs_source_frame *f)
@@ -263,7 +270,8 @@ static void ffmpeg_source_open(struct ffmpeg_source *s)
 			.speed = s->speed_percent,
 			.force_range = s->range,
 			.hardware_decoding = s->is_hw_decoding,
-			.is_local_file = s->is_local_file || s->seekable
+			.is_local_file = s->is_local_file || s->seekable,
+			.enable_caching = s->enable_caching
 		};
 
 		s->media_valid = mp_media_init(&s->media, &info);
@@ -316,6 +324,7 @@ static void ffmpeg_source_update(void *data, obs_data_t *settings)
 				"close_when_inactive");
 
 		obs_source_set_async_unbuffered(s->source, true);
+		s->enable_caching = obs_data_get_bool(settings, "caching");
 	} else {
 		input = (char *)obs_data_get_string(settings, "input");
 		input_format = (char *)obs_data_get_string(settings,
@@ -324,6 +333,7 @@ static void ffmpeg_source_update(void *data, obs_data_t *settings)
 		s->close_when_inactive = true;
 
 		obs_source_set_async_unbuffered(s->source, false);
+		s->enable_caching = false;
 	}
 
 	s->input = input ? bstrdup(input) : NULL;
