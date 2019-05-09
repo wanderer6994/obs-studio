@@ -620,6 +620,10 @@ static bool allow_cache(mp_media_t *m)
 {
 	int video_stream_index = av_find_best_stream(m->fmt,
 		AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+
+	if (video_stream_index < 0)
+		return;
+
 	AVStream *stream = m->fmt->streams[video_stream_index];
 	AVRational avg_frame_rate = stream->avg_frame_rate;
 	int64_t frames = (int64_t)ceil((double)m->fmt->duration /
