@@ -75,6 +75,7 @@ static bool is_local_file_modified(obs_properties_t *props,
 	obs_property_t *close = obs_properties_get(props, "close_when_inactive");
 	obs_property_t *seekable = obs_properties_get(props, "seekable");
 	obs_property_t *speed = obs_properties_get(props, "speed_percent");
+	obs_property_t *caching = obs_properties_get(props, "caching");
 	obs_property_set_visible(input, !enabled);
 	obs_property_set_visible(input_format, !enabled);
 	obs_property_set_visible(buffering, !enabled);
@@ -83,6 +84,7 @@ static bool is_local_file_modified(obs_properties_t *props,
 	obs_property_set_visible(looping, enabled);
 	obs_property_set_visible(speed, enabled);
 	obs_property_set_visible(seekable, !enabled);
+	obs_property_set_visible(caching, false);
 
 	return true;
 }
