@@ -616,29 +616,6 @@ static int interrupt_callback(void *data)
 	return stop;
 }
 
-static bool allow_cache(mp_media_t *m)
-{
-	int video_stream_index = av_find_best_stream(m->fmt,
-		AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-
-	if (video_stream_index < 0)
-		return true;
-
-	AVStream *stream = m->fmt->streams[video_stream_index];
-	AVRational avg_frame_rate = stream->avg_frame_rate;
-	int64_t frames = (int64_t)ceil((double)m->fmt->duration /
-		(double)AV_TIME_BASE *
-		(double)avg_frame_rate.num /
-		(double)avg_frame_rate.den);
-
-	int width = stream->codec->width;
-	int height = stream->codec->height;
-
-	// File size in MB
-	double file_size = width * height * 1.5 * frames / 1000000;
-	return file_size < 1024;
-}
-
 static bool init_avformat(mp_media_t *m)
 {
 	AVInputFormat *format = NULL;
@@ -683,7 +660,7 @@ static bool init_avformat(mp_media_t *m)
 	}
 
 	if (m->enable_caching)
-		m->caching = m->looping && m->is_local_file && allow_cache(m);
+		m->caching = m->looping && m->is_local_file;
 	else
 		m->caching = false;
 
@@ -904,7 +881,7 @@ void mp_media_play(mp_media_t *m, bool loop)
 
 	m->looping = loop;
 	if (m->fmt && m->enable_caching)
-		m->caching = m->looping && m->is_local_file && allow_cache(m);
+		m->caching = m->looping && m->is_local_file;
 	else
 		m->caching = false;
 	m->active = true;
