@@ -591,6 +591,11 @@ static inline bool mp_media_eof(mp_media_t *m)
 		m->audio.index_eof = m->audio.index;
 		m->audio.index = 0;
 		m->next_wait = 0;
+
+		if (!m->new_cache_state)
+			clear_cache(m);
+
+		m->caching = m->new_cache_state;
 		pthread_mutex_unlock(&m->mutex);
 
 		mp_media_reset(m);

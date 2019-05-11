@@ -450,7 +450,7 @@ static void update_cache_state(void *data, calldata_t *cd)
 	if (!s->media.fmt)
 		return;
 
-	bool caching = (bool)calldata_bool(cd, "caching");
+	s->media.new_cache_state = (bool)calldata_bool(cd, "caching");
 }
 
 static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)

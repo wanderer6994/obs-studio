@@ -105,6 +105,7 @@ struct mp_media {
 
 	bool caching;
 	bool enable_caching;
+	bool new_cache_state;
 	struct cached_data video;
 	struct cached_data audio;
 	int64_t next_wait;
