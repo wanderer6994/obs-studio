@@ -269,12 +269,16 @@ static void mp_media_next_audio(mp_media_t *m)
 	}
 
 	if (m->audio.index_eof < 0 || !m->caching) {
-		if (!mp_media_can_play_frame(m, d))
+		if (!mp_media_can_play_frame(m, d)) {
+			free(audio);
 			return;
+		}
 
 		d->frame_ready = false;
-		if (!m->a_cb)
+		if (!m->a_cb) {
+			free(audio);
 			return;
+		}
 
 
 		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
@@ -319,6 +323,9 @@ static void mp_media_next_audio(mp_media_t *m)
 	if (audio) {
 		m->a_cb(m->opaque, audio);
 	}
+
+	if (!m->caching)
+		free(audio);
 }
 
 static void mp_media_next_video(mp_media_t *m, bool preload)
