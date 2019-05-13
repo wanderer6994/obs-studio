@@ -262,8 +262,10 @@ static void mp_media_next_audio(mp_media_t *m)
 	struct obs_source_audio *audio = malloc(sizeof(struct obs_source_audio));
 
 	if (m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) {
+		m->video.index = 0;
 		m->audio.index = 0;
 		m->next_wait = 0;
+		return;
 	}
 
 	if (m->audio.index_eof < 0 || !m->caching) {
@@ -332,6 +334,7 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 		m->video.index = 0;
 		m->audio.index= 0;
 		m->next_wait = 0;
+		return;
 	}
 
 	if (m->video.index_eof < 0 || !m->caching) {
