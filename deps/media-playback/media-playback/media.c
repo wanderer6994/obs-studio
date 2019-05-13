@@ -288,6 +288,7 @@ static void mp_media_next_audio(mp_media_t *m)
 		audio->frames = f->nb_samples;
 		audio->timestamp = m->base_ts + d->frame_pts - m->start_ts +
 			m->play_sys_ts - base_sys_ts;
+		audio->dec_frame_pts = d->frame_pts;
 
 		if (audio->format == AUDIO_FORMAT_UNKNOWN) {
 			for (size_t j = 0; j < MAX_AV_PLANES; j++) {
@@ -297,16 +298,24 @@ static void mp_media_next_audio(mp_media_t *m)
 			return;
 		}
 
-		if (m->audio.index > 0) {
-			struct obs_source_audio *previous_frame = m->audio.data.array[m->audio.index - 1];
-			m->audio.refresh_rate_ns =
-				audio->timestamp - previous_frame->timestamp;
+		if (m->caching) {
+			if (m->audio.index > 0) {
+				struct obs_source_audio *previous_frame = m->audio.data.array[m->audio.index - 1];
+				m->audio.refresh_rate_ns =
+					audio->timestamp - previous_frame->timestamp;
+			}
+			da_push_back(m->audio.data, &audio);
 		}
-		da_push_back(m->audio.data, &audio);
 	}
-	if (m->audio.data.num > 0) {
-		m->a_cb(m->opaque, audio);
+	if (m->caching) {
+		audio = m->audio.data.array[m->audio.index];
+		audio->timestamp = m->base_ts + audio->dec_frame_pts - m->start_ts +
+			m->play_sys_ts - base_sys_ts;
 		m->audio.index++;
+	}
+
+	if (audio) {
+		m->a_cb(m->opaque, audio);
 	}
 }
 
