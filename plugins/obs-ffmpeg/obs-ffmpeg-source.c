@@ -84,7 +84,7 @@ static bool is_local_file_modified(obs_properties_t *props,
 	obs_property_set_visible(looping, enabled);
 	obs_property_set_visible(speed, enabled);
 	obs_property_set_visible(seekable, !enabled);
-	obs_property_set_visible(caching, false);
+	//obs_property_set_visible(caching, false);
 
 	return true;
 }

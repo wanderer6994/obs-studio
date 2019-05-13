@@ -259,6 +259,7 @@ static void mp_media_next_audio(mp_media_t *m)
 {
 	struct mp_decode *d = &m->a;
 	AVFrame *f = d->frame;
+	struct obs_source_audio *audio = malloc(sizeof(struct obs_source_audio));
 
 	if (m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) {
 		m->audio.index = 0;
@@ -266,7 +267,6 @@ static void mp_media_next_audio(mp_media_t *m)
 	}
 
 	if (m->audio.index_eof < 0 || !m->caching) {
-
 		if (!mp_media_can_play_frame(m, d))
 			return;
 
@@ -274,7 +274,6 @@ static void mp_media_next_audio(mp_media_t *m)
 		if (!m->a_cb)
 			return;
 
-		struct obs_source_audio *audio = malloc(sizeof(struct obs_source_audio));
 
 		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
 			audio->data[i] = malloc(f->linesize[0]);
@@ -306,7 +305,7 @@ static void mp_media_next_audio(mp_media_t *m)
 		da_push_back(m->audio.data, &audio);
 	}
 	if (m->audio.data.num > 0) {
-		m->a_cb(m->opaque, m->audio.data.array[m->audio.index]);
+		m->a_cb(m->opaque, audio);
 		m->audio.index++;
 	}
 }
