@@ -321,8 +321,8 @@ static void mp_media_next_audio(mp_media_t *m)
 	}
 
 	if (!m->caching) {
-		for (size_t j = 0; j < MAX_AV_PLANES; j++) {
-			free(audio->data[j]);
+		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
+			free(audio->data[i]);
 		}
 		free(audio);
 	}
