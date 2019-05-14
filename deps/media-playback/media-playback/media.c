@@ -255,6 +255,24 @@ static inline bool mp_media_can_play_frame(mp_media_t *m,
 	return d->frame_ready && d->frame_pts <= m->next_pts_ns;
 }
 
+static inline void clear_cache(mp_media_t *m)
+{
+	if (m->video.data.num > 0) {
+		for (size_t i = 0; i < m->video.data.num; i++) {
+			obs_source_frame_free(m->video.data.array[i]);
+		}
+	}
+	if (m->audio.data.num > 0) {
+		for (size_t i = 0; i < m->audio.data.num; i++) {
+			for (size_t j = 0; j < MAX_AV_PLANES; j++) {
+				free(((struct obs_source_audio*)m->audio.data.array[i])->data[j]);
+			}
+		}
+	}
+	da_free(m->video.data);
+	da_free(m->audio.data);
+}
+
 static void mp_media_next_audio(mp_media_t *m)
 {
 	struct mp_decode *d = &m->a;
@@ -264,6 +282,9 @@ static void mp_media_next_audio(mp_media_t *m)
 	if (m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) {
 		m->audio.index = 0;
 		m->next_wait = 0;
+		if (!m->new_cache_state)
+			clear_cache(m);
+		m->caching = m->new_cache_state;
 		return;
 	}
 
@@ -340,6 +361,9 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 	if (m->video.index_eof > 0 && m->video.index == m->video.index_eof) {
 		m->video.index = 0;
 		m->next_wait = 0;
+		if (!m->new_cache_state)
+			clear_cache(m);
+		m->caching = m->new_cache_state;
 		return;
 	}
 
@@ -480,24 +504,6 @@ static void mp_media_calc_next_ns(mp_media_t *m)
 
 	m->next_ns += delta;
 	m->next_pts_ns = min_next_ns;
-}
-
-static inline void clear_cache(mp_media_t *m)
-{
-	if (m->video.data.num > 0) {
-		for (size_t i = 0; i < m->video.data.num; i++) {
-			obs_source_frame_free(m->video.data.array[i]);
-		}
-	}
-	if (m->audio.data.num > 0) {
-		for (size_t i = 0; i < m->audio.data.num; i++) {
-			for (size_t j = 0; j < MAX_AV_PLANES; j++) {
-				free(((struct obs_source_audio*)m->audio.data.array[i])->data[j]);
-			}
-		}
-	}
-	da_free(m->video.data);
-	da_free(m->audio.data);
 }
 
 static bool mp_media_reset(mp_media_t *m)
