@@ -320,8 +320,12 @@ static void mp_media_next_audio(mp_media_t *m)
 		m->a_cb(m->opaque, audio);
 	}
 
-	if (!m->caching)
+	if (!m->caching) {
+		for (size_t j = 0; j < MAX_AV_PLANES; j++) {
+			free(audio->data[j]);
+		}
 		free(audio);
+	}
 }
 
 static void mp_media_next_video(mp_media_t *m, bool preload)
