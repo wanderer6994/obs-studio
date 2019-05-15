@@ -279,15 +279,6 @@ static void mp_media_next_audio(mp_media_t *m)
 	AVFrame *f = d->frame;
 	struct obs_source_audio *audio;
 
-	if (m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) {
-		m->audio.index = 0;
-		m->next_wait = 0;
-		if (!m->new_cache_state)
-			clear_cache(m);
-		m->caching = m->new_cache_state;
-		return;
-	}
-
 	if (m->audio.index_eof < 0 || !m->caching) {
 		if (!mp_media_can_play_frame(m, d))
 			return;
@@ -357,15 +348,6 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 	enum video_range_type new_range;
 	AVFrame *f = d->frame;
 	struct obs_source_frame *frame;
-
-	if (m->video.index_eof > 0 && m->video.index == m->video.index_eof) {
-		m->video.index = 0;
-		m->next_wait = 0;
-		if (!m->new_cache_state)
-			clear_cache(m);
-		m->caching = m->new_cache_state;
-		return;
-	}
 
 	if (m->video.index_eof < 0 || !m->caching) {
 		if (!preload) {
@@ -609,9 +591,15 @@ static inline bool mp_media_eof(mp_media_t *m)
 			m->active = false;
 			m->stopping = true;
 		}
-		m->video.index_eof = m->video.index;
+
+		if (m->caching) {
+			m->video.index_eof = m->video.index;
+			m->audio.index_eof = m->audio.index;
+		} else if (m->new_cache_state) {
+			m->video.index_eof = -1;
+			m->audio.index_eof = -1;
+		}
 		m->video.index = 0;
-		m->audio.index_eof = m->audio.index;
 		m->audio.index = 0;
 		m->next_wait = 0;
 
@@ -740,6 +728,20 @@ static inline bool mp_media_thread(mp_media_t *m)
 
 		/* frames are ready */
 		if (is_active && !timeout) {
+			if (m->video.index_eof > 0 && m->video.index == m->video.index_eof ||
+				m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) {
+				m->video.index_eof = m->video.index;
+				m->video.index = 0;
+				m->audio.index_eof = m->audio.index;
+				m->audio.index = 0;
+				m->next_wait = 0;
+
+				if (!m->new_cache_state)
+					clear_cache(m);
+
+				m->caching = m->new_cache_state;
+			}
+
 			if (m->has_video)
 				mp_media_next_video(m, false);
 			if (m->has_audio)
