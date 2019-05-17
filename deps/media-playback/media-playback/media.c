@@ -310,6 +310,8 @@ static void mp_media_next_audio(mp_media_t *m)
 		}
 	}
 	if (m->enable_caching) {
+		if (m->audio.data.num <= 0)
+			return;
 		audio = m->audio.data.array[m->audio.index];
 		audio->timestamp = m->base_ts + audio->dec_frame_pts - m->start_ts +
 			m->play_sys_ts - base_sys_ts;
@@ -455,6 +457,8 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 		}
 	}
 	else if (m->enable_caching) {
+		if (m->video.data.num <= 0)
+			return;
 		frame = m->video.data.array[m->video.index];
 		m->video.index++;
 	}
