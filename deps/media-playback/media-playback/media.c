@@ -753,6 +753,9 @@ static inline bool mp_media_thread(mp_media_t *m)
 						time_spent += sleeping_time;
 					}
 				}
+				else if (!m->has_video) {
+					os_sleep_ms(m->audio.refresh_rate_ns / 1000000);
+				}
 				else {
 					os_sleep_ms(m->video.refresh_rate_ns / 1000000);
 				}
