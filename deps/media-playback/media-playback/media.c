@@ -731,14 +731,6 @@ static inline bool mp_media_thread(mp_media_t *m)
 					return false;
 			}
 			else {
-				if ((m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) ||
-					(m->video.index_eof > 0 && m->video.index == m->video.index_eof)) {
-					m->audio.index = 0;
-					m->video.index = 0;
-					m->video.last_processed_ns = 0;
-					m->audio.last_processed_ns = 0;
-					continue;
-				}
 				if (!m->has_video) {
 					os_sleep_ms(m->audio.refresh_rate_ns / 1000000);
 				}
@@ -777,6 +769,14 @@ static inline bool mp_media_thread(mp_media_t *m)
 						m->audio.last_processed_ns = os_gettime_ns();
 					}
 
+				}
+				if ((m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) ||
+					(m->video.index_eof > 0 && m->video.index == m->video.index_eof)) {
+					m->audio.index = 0;
+					m->video.index = 0;
+					m->video.last_processed_ns = 0;
+					m->audio.last_processed_ns = 0;
+					continue;
 				}
 				m->a.frame_ready = true;
 				m->v.frame_ready = true;
