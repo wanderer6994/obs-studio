@@ -266,14 +266,6 @@ static void mp_media_next_audio(mp_media_t *m)
 		return;
 	}
 
-	if (m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) {
-		m->audio.index = 0;
-		m->video.index = 0;
-		m->video.last_processed_ns = 0;
-		m->audio.last_processed_ns = 0;
-		return;
-	}
-
 	if (m->audio.index_eof < 0 || !m->enable_caching) {
 		if (!mp_media_can_play_frame(m, d))
 			return;
@@ -448,11 +440,9 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 
 			obs_source_frame_copy(new_frame, current_frame);
 
-			if (m->video.index > 2 && m->video.refresh_rate_ns == 0) {
+			if (m->video.index > 0 && m->video.refresh_rate_ns == 0) {
 				struct obs_source_frame *previous_frame = m->video.data.array[m->video.index - 1];
 				m->video.refresh_rate_ns = new_frame->timestamp - previous_frame->timestamp;
-
-				blog(LOG_INFO, "Video refresh rate %d", m->video.refresh_rate_ns);
 			}
 
 			da_push_back(m->video.data, &new_frame);
@@ -465,13 +455,6 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 	else if (m->enable_caching) {
 		if (m->video.data.num <= 0)
 			return;
-		if (m->video.index >= m->video.data.num) {
-			m->video.index = 0;
-			m->audio.index = 0;
-			m->video.last_processed_ns = 0;
-			m->audio.last_processed_ns = 0;
-			return;
-		}
 		frame = m->video.data.array[m->video.index];
 	}
 	m->video.index++;
@@ -748,6 +731,14 @@ static inline bool mp_media_thread(mp_media_t *m)
 					return false;
 			}
 			else {
+				if ((m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) ||
+					(m->video.index_eof > 0 && m->video.index == m->video.index_eof)) {
+					m->audio.index = 0;
+					m->video.index = 0;
+					m->video.last_processed_ns = 0;
+					m->audio.last_processed_ns = 0;
+					continue;
+				}
 				if (!m->has_video) {
 					os_sleep_ms(m->audio.refresh_rate_ns / 1000000);
 				}
