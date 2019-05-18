@@ -257,14 +257,14 @@ static inline bool mp_media_can_play_frame(mp_media_t *m,
 
 static void mp_media_next_audio(mp_media_t *m)
 {
-	struct mp_decode *d = &m->a;
-	AVFrame *f = d->frame;
-	struct obs_source_audio *audio;
-
 	if (!m->process_audio) {
 		m->process_audio = true;
 		return;
 	}
+
+	struct mp_decode *d = &m->a;
+	AVFrame *f = d->frame;
+	struct obs_source_audio *audio;
 
 	if (m->audio.index_eof < 0 || !m->enable_caching) {
 		if (!mp_media_can_play_frame(m, d))
@@ -330,17 +330,17 @@ static void mp_media_next_audio(mp_media_t *m)
 
 static void mp_media_next_video(mp_media_t *m, bool preload)
 {
+	if (!m->process_video) {
+		m->process_video = true;
+		return;
+	}
+
 	struct mp_decode *d = &m->v;
 	enum video_format new_format;
 	enum video_colorspace new_space;
 	enum video_range_type new_range;
 	AVFrame *f = d->frame;
 	struct obs_source_frame *frame;
-
-	if (!m->process_video) {
-		m->process_video = true;
-		return;
-	}
 
 	if (m->video.index_eof < 0 || !m->enable_caching) {
 		if (!preload) {
