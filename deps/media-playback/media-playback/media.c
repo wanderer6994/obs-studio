@@ -915,7 +915,10 @@ void mp_media_play(mp_media_t *m, bool loop)
 
 	m->looping = loop;
 	m->active = true;
-
+	m->audio.index = 0;
+	m->video.index = 0;
+	m->video.last_processed_ns = 0;
+	m->audio.last_processed_ns = 0;
 	pthread_mutex_unlock(&m->mutex);
 
 	os_sem_post(m->sem);
