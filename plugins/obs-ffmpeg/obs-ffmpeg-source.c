@@ -409,6 +409,8 @@ static void get_nb_frames(void *data, calldata_t *cd)
 {
 	struct ffmpeg_source *s = data;
 	int64_t frames = 0;
+	int64_t width  = 0;
+	int64_t height = 0;
 
 	if (!s->media.fmt) {
 		calldata_set_int(cd, "num_frames", frames);
@@ -439,7 +441,14 @@ static void get_nb_frames(void *data, calldata_t *cd)
 				(double)avg_frame_rate.den);
 	}
 
+	if (stream->codec->width > 0 && stream->codec->height > 0) {
+		width  = stream->codec->width;
+		height = stream->codec->height;
+	}
+
 	calldata_set_int(cd, "num_frames", frames);
+	calldata_set_int(cd, "width", width);
+	calldata_set_int(cd, "height", height);
 }
 
 static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)
