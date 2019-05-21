@@ -411,7 +411,7 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	int64_t frames = 0;
 	int64_t width  = 0;
 	int64_t height = 0;
-	uint32_t codec_id = 0;
+	uint32_t pix_format = 0;
 
 	if (!s->media.fmt) {
 		calldata_set_int(cd, "num_frames", frames);
@@ -445,13 +445,13 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	if (stream->codec->width > 0 && stream->codec->height > 0) {
 		width  = stream->codec->width;
 		height = stream->codec->height;
-		codec_id = stream->codecpar->codec_id;
+		pix_format = s->media.pix_format;
 	}
 
 	calldata_set_int(cd, "num_frames", frames);
 	calldata_set_int(cd, "width", width);
 	calldata_set_int(cd, "height", height);
-	calldata_set_int(cd, "codec_id", codec_id);
+	calldata_set_int(cd, "pix_format", pix_format);
 }
 
 static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)

@@ -434,6 +434,9 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 			d->got_first_keyframe = true;
 		}
 
+		if (!m->pix_format)
+			m->pix_format = current_frame->format;
+
 		if (m->enable_caching) {
 			struct obs_source_frame *new_frame = obs_source_frame_create(
 				current_frame->format, current_frame->width, current_frame->height);
@@ -824,6 +827,7 @@ static inline bool mp_media_init_internal(mp_media_t *m,
 	m->audio = (struct cached_data) { 0, -1, NULL, -1, 0 };
 	m->process_audio = true;
 	m->process_video = false;
+	m->pix_format = 0;
 	da_init(m->video.data);
 	da_init(m->audio.data);
 
