@@ -609,6 +609,7 @@ static inline bool mp_media_eof(mp_media_t *m)
 		m->video.index = 0;
 		m->audio.index_eof = m->audio.index;
 		m->audio.index = 0;
+		m->enable_caching = m->new_cache_state;
 		pthread_mutex_unlock(&m->mutex);
 
 		mp_media_reset(m);
@@ -779,6 +780,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 					m->video.index = 0;
 					m->video.last_processed_ns = 0;
 					m->audio.last_processed_ns = 0;
+					m->enable_caching = m->new_cache_state;
 					continue;
 				}
 				m->a.frame_ready = true;
@@ -854,6 +856,7 @@ bool mp_media_init(mp_media_t *media, const struct mp_media_info *info)
 	media->speed = info->speed;
 	media->is_local_file = info->is_local_file;
 	media->enable_caching = info->enable_caching;
+	media->new_cache_state = info->enable_caching;
 
 	if (!info->is_local_file || media->speed < 1 || media->speed > 200)
 		media->speed = 100;

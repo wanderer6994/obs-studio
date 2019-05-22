@@ -454,6 +454,17 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	calldata_set_int(cd, "pix_format", pix_format);
 }
 
+static void update_cache_state(void *data, calldata_t *cd)
+{
+	struct ffmpeg_source *s = data;
+	int64_t frames = 0;
+
+	if (!s->media.fmt)
+		return;
+
+	s->media.new_cache_state = (bool)calldata_bool(cd, "caching");
+}
+
 static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)
 {
 	UNUSED_PARAMETER(settings);
