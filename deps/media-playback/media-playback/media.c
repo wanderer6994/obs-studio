@@ -780,6 +780,9 @@ static inline bool mp_media_thread(mp_media_t *m)
 					m->video.index = 0;
 					m->video.last_processed_ns = 0;
 					m->audio.last_processed_ns = 0;
+
+					if (!m->new_cache_state)
+						clear_cache(m);
 					m->enable_caching = m->new_cache_state;
 					continue;
 				}

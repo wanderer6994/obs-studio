@@ -457,7 +457,6 @@ static void get_nb_frames(void *data, calldata_t *cd)
 static void update_cache_state(void *data, calldata_t *cd)
 {
 	struct ffmpeg_source *s = data;
-	int64_t frames = 0;
 
 	if (!s->media.fmt)
 		return;
@@ -483,6 +482,8 @@ static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)
 			get_duration, s);
 	proc_handler_add(ph, "void get_nb_frames(out int num_frames)",
 			get_nb_frames, s);
+	proc_handler_add(ph, "void update_cache_state(bool caching)",
+		update_cache_state, s);
 
 	ffmpeg_source_update(s, settings);
 	return s;
