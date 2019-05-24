@@ -1,6 +1,9 @@
 trigger:
 - streamlabs-23.1.0
 
+workspace:
+  clean: all
+
 strategy:
   matrix:
     Release:
@@ -37,14 +40,14 @@ variables:
 steps:
 - script: | 
     git submodule update --init --recursive --jobs 2
-    mkdir "%BuildPath32%"
-    mkdir "%BuildPath64%"
+    if not exist "%BuildPath32%" (mkdir "%BuildPath32%")
+    if not exist "%BuildPath64%" (mkdir "%BuildPath64%")
   displayName: 'Update submodules and create build paths'
 
 - script: |
-    if not exist "dependencies2017.zip" (curl -kLO "%DependenciesUrl%" -f --retry 5) else (curl -kLO "%DependenciesUrl%" -f --retry 5 -C -)
-    if not exist "%CefZip%" (curl -kLO "%CefUrl%" -f --retry 5) else (curl -kLO "%CefUrl%" -f --retry 5 -C -)
-    if not exist "vlc.zip" (curl -kLO "%VLCUrl%" -f --retry 5) else (curl -kLO "%VLCUrl%" -f --retry 5 -C -)
+    if not exist "dependencies2017.zip" (curl -kLO "%DependenciesUrl%" -f --retry 5)
+    if not exist "%CefZip%" (curl -kLO "%CefUrl%" -f --retry 5)
+    if not exist "vlc.zip" (curl -kLO "%VLCUrl%" -f --retry 5)
     7z x "%CefZip%"
     7z x dependencies2017.zip -odependencies2017
     7z x vlc.zip -ovlc
@@ -87,13 +90,21 @@ steps:
     replaceExistingArchive: true
     archiveType: 7z
     archiveFile: $(ReleaseArtifact)
-  displayName: 'Generate release artifact'
+  displayName: 'Generate artifact'
 
 - task: PublishBuildArtifacts@1
   inputs: 
     pathtoPublish: $(Build.SourcesDirectory)\$(ReleaseArtifact)
     artifactName: $(ReleaseArtifact)
-  displayName: 'Publish release artifact'
+  displayName: 'Publish artifact'
+
+- task: S3Upload@1
+  inputs:
+    awsCredentials: 'SLOBS Backend AWS buckets'
+    regionName: 'us-west-2'
+    bucketName: 'obsstudios3.streamlabs.com'
+    globExpressions: '$(ReleaseArtifact)'
+  displayName: 'Upload artifact to S3'
 
 - script: "shutdown /r /t 10 /c \"Reboot after CI Job finished\" /f /d p:4:1"
   displayName: "Schedule reboot"
