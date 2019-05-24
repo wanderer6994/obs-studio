@@ -51,7 +51,7 @@ steps:
     7z x "%CefZip%"
     7z x dependencies2017.zip -odependencies2017
     7z x vlc.zip -ovlc
-  displayName: 'Install dependencies'
+  displayName: 'Download and extract dependencies'
 
 - script: 'cmake -G"%CMakeGenerator%" -A x64 -H"%CefPath%" -B"%CefBuildPath%" -DCEF_RUNTIME_LIBRARY_FLAG="/MD"'
   displayName: 'Configure libCef'
@@ -104,10 +104,9 @@ steps:
     regionName: 'us-west-2'
     bucketName: 'obsstudios3.streamlabs.com'
     globExpressions: '$(ReleaseArtifact)'
+    filesAcl: 'public-read'
   displayName: 'Upload artifact to S3'
 
 - script: "shutdown /r /t 10 /c \"Reboot after CI Job finished\" /f /d p:4:1"
   displayName: "Schedule reboot"
   condition: always()
-
-
