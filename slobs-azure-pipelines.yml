@@ -19,7 +19,6 @@ pool:
   name: Streamlabs OBS Backend
 
 variables:
-  CURL_VERSION: 7.56.1
   CmakeGenerator: Visual Studio 15 2017
   DepsPath32: $(Build.SourcesDirectory)\dependencies2017\win32
   DepsPath64: $(Build.SourcesDirectory)\dependencies2017\win64
@@ -42,7 +41,7 @@ steps:
     git submodule update --init --recursive --jobs 2
     if not exist "%BuildPath32%" (mkdir "%BuildPath32%")
     if not exist "%BuildPath64%" (mkdir "%BuildPath64%")
-  displayName: 'Update submodules and create build paths'
+  displayName: 'Update submodules and create build folders'
 
 - script: |
     if not exist "dependencies2017.zip" (curl -kLO "%DependenciesUrl%" -f --retry 5)
@@ -108,5 +107,5 @@ steps:
   displayName: 'Upload artifact to S3'
 
 - script: "shutdown /r /t 10 /c \"Reboot after CI Job finished\" /f /d p:4:1"
-  displayName: "Schedule reboot"
+  displayName: 'Schedule reboot'
   condition: always()
