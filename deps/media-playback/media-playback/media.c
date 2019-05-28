@@ -690,12 +690,12 @@ static inline bool mp_media_thread(mp_media_t *m)
 	if (!mp_media_reset(m)) {
 		return false;
 	}
-
 	for (;;) {
 		bool reset, kill, is_active;
 		bool timeout = false;
 
 		pthread_mutex_lock(&m->mutex);
+		m->playing = true;
 		is_active = m->active;
 		pthread_mutex_unlock(&m->mutex);
 
@@ -791,6 +791,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 		}
 	}
 	clear_cache(m);
+	m->playing = false;
 	return true;
 }
 
@@ -854,6 +855,7 @@ bool mp_media_init(mp_media_t *media, const struct mp_media_info *info)
 	media->speed = info->speed;
 	media->is_local_file = info->is_local_file;
 	media->enable_caching = info->enable_caching;
+	media->playing = false;
 
 	if (!info->is_local_file || media->speed < 1 || media->speed > 200)
 		media->speed = 100;
