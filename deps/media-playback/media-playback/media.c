@@ -690,6 +690,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 	if (!mp_media_reset(m)) {
 		return false;
 	}
+
 	for (;;) {
 		bool reset, kill, is_active;
 		bool timeout = false;
