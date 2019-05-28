@@ -792,7 +792,9 @@ static inline bool mp_media_thread(mp_media_t *m)
 		}
 	}
 	clear_cache(m);
+	pthread_mutex_lock(&m->mutex);
 	m->playing = false;
+	pthread_mutex_unlock(&m->mutex);
 	return true;
 }
 
