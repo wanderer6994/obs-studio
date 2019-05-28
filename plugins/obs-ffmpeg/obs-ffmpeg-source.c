@@ -454,6 +454,13 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	calldata_set_int(cd, "pix_format", pix_format);
 }
 
+static void get_active(void *data, calldata_t *cd)
+{
+	struct ffmpeg_source *s = data;
+	bool active = s->media.active;
+	calldata_set_bool(cd, "active", active);
+}
+
 static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)
 {
 	UNUSED_PARAMETER(settings);
@@ -472,6 +479,8 @@ static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)
 			get_duration, s);
 	proc_handler_add(ph, "void get_nb_frames(out int num_frames)",
 			get_nb_frames, s);
+	proc_handler_add(ph, "void get_active(out bool active)",
+		get_active, s);
 
 	ffmpeg_source_update(s, settings);
 	return s;
