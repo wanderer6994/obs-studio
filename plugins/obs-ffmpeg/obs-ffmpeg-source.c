@@ -457,7 +457,9 @@ static void get_nb_frames(void *data, calldata_t *cd)
 static void get_playing(void *data, calldata_t *cd)
 {
 	struct ffmpeg_source *s = data;
+	pthread_mutex_lock(&s->media.mutex);
 	bool playing = s->media.playing;
+	pthread_mutex_unlock(&s->media.mutex);
 	calldata_set_bool(cd, "playing", playing);
 }
 
