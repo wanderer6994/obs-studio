@@ -445,7 +445,7 @@ static void get_nb_frames(void *data, calldata_t *cd)
 				(double)avg_frame_rate.den);
 	}
 
-	if (!stream->codec && stream->codec->width > 0 && stream->codec->height > 0) {
+	if (stream->codec && stream->codec->width > 0 && stream->codec->height > 0) {
 		width  = stream->codec->width;
 		height = stream->codec->height;
 		pix_format = s->media.pix_format;
