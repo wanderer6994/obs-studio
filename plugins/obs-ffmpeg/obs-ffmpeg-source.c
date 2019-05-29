@@ -413,13 +413,12 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	int64_t height = 0;
 	uint32_t pix_format = 0;
 
-	pthread_mutex_lock(&s->media.mutex);
-
 	if (!s->media.fmt) {
 		calldata_set_int(cd, "num_frames", frames);
-		pthread_mutex_unlock(&s->media.mutex);
 		return;
 	}
+
+	pthread_mutex_lock(&s->media.mutex);
 
 	int video_stream_index = av_find_best_stream(s->media.fmt,
 			AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
