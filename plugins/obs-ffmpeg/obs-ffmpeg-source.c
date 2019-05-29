@@ -458,7 +458,13 @@ static void get_playing(void *data, calldata_t *cd)
 {
 	struct ffmpeg_source *s = data;
 	pthread_mutex_lock(&s->media.mutex);
-	bool playing = s->media.playing;
+	bool playing = false;
+	if (!s->media.fmt) {
+		calldata_set_bool(cd, "playing", playing);
+		return;
+	}
+
+	playing = s->media.playing;
 	pthread_mutex_unlock(&s->media.mutex);
 	calldata_set_bool(cd, "playing", playing);
 }
