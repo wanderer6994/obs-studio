@@ -413,8 +413,11 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	int64_t height = 0;
 	uint32_t pix_format = 0;
 
+	pthread_mutex_lock(&s->media.mutex);
+
 	if (!s->media.fmt) {
 		calldata_set_int(cd, "num_frames", frames);
+		pthread_mutex_unlock(&s->media.mutex);
 		return;
 	}
 
@@ -425,6 +428,7 @@ static void get_nb_frames(void *data, calldata_t *cd)
 		FF_BLOG(LOG_WARNING, "Getting number of frames failed: No "
 				"video stream in media file!");
 		calldata_set_int(cd, "num_frames", frames);
+		pthread_mutex_unlock(&s->media.mutex);
 		return;
 	}
 
@@ -442,7 +446,7 @@ static void get_nb_frames(void *data, calldata_t *cd)
 				(double)avg_frame_rate.den);
 	}
 
-	if (stream->codec->width > 0 && stream->codec->height > 0) {
+	if (!stream->codec && stream->codec->width > 0 && stream->codec->height > 0) {
 		width  = stream->codec->width;
 		height = stream->codec->height;
 		pix_format = s->media.pix_format;
@@ -452,6 +456,7 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	calldata_set_int(cd, "width", width);
 	calldata_set_int(cd, "height", height);
 	calldata_set_int(cd, "pix_format", pix_format);
+	pthread_mutex_unlock(&s->media.mutex);
 }
 
 static void get_playing(void *data, calldata_t *cd)
