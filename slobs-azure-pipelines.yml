@@ -16,7 +16,7 @@ strategy:
       ReleaseName: debug
 
 pool:
-  name: Default
+  name: 'Default'
 
 variables:
   CmakeGenerator: Visual Studio 15 2017
