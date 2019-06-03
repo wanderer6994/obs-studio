@@ -1552,7 +1552,7 @@ EXPORT bool obs_weak_output_references_output(obs_weak_output_t *weak,
 EXPORT const char *obs_output_get_name(const obs_output_t *output);
 
 /** Starts the output. */
-EXPORT bool obs_output_start(obs_output_t *output, bool force = false);
+EXPORT bool obs_output_start(obs_output_t *output);
 
 /** Stops the output. */
 EXPORT void obs_output_stop(obs_output_t *output);

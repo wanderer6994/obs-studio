@@ -934,7 +934,7 @@ extern void process_delay(void *data, struct encoder_packet *packet);
 extern void obs_output_cleanup_delay(obs_output_t *output);
 extern bool obs_output_delay_start(obs_output_t *output);
 extern void obs_output_delay_stop(obs_output_t *output);
-extern bool obs_output_actual_start(obs_output_t *output, bool force = false);
+extern bool obs_output_actual_start(obs_output_t *output);
 extern void obs_output_actual_stop(obs_output_t *output, bool force,
 		uint64_t ts);
 
@@ -1025,7 +1025,7 @@ struct obs_encoder {
 
 extern struct obs_encoder_info *find_encoder(const char *id);
 
-extern bool obs_encoder_initialize(obs_encoder_t *encoder, bool force = false);
+extern bool obs_encoder_initialize(obs_encoder_t *encoder);
 extern void obs_encoder_shutdown(obs_encoder_t *encoder);
 
 extern void obs_encoder_start(obs_encoder_t *encoder,
