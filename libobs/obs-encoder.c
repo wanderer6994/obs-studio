@@ -571,6 +571,9 @@ static inline bool obs_encoder_stop_internal(obs_encoder_t *encoder,
 		da_erase(encoder->callbacks, idx);
 		last = (encoder->callbacks.num == 0);
 	}
+	else {
+		last = true;
+	}
 
 	pthread_mutex_unlock(&encoder->callbacks_mutex);
 
