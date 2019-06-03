@@ -482,6 +482,7 @@ bool obs_encoder_initialize(obs_encoder_t *encoder)
 	if (!encoder) return false;
 
 	pthread_mutex_lock(&encoder->init_mutex);
+	encoder->initialized = false;
 	success = obs_encoder_initialize_internal(encoder);
 	pthread_mutex_unlock(&encoder->init_mutex);
 
