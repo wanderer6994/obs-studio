@@ -1654,7 +1654,7 @@ static inline void convert_flags(const struct obs_output *output,
 {
 	*encoded = (output->info.flags & OBS_OUTPUT_ENCODED) != 0;
 	if (!flags)
-		flags = output->info.flags;
+		flags = output->info.flags | OBS_OUTPUT_FORCE_ENCODER;
 	else
 		flags &= output->info.flags;
 
