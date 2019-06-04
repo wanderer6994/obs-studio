@@ -31,10 +31,13 @@ variables:
   CefBuildPath: $(CefPath)\build
   CefZip: $(CefDirName).zip
   CefUrl: https://s3-us-west-2.amazonaws.com/streamlabs-cef-dist/$(CefZip)
-  ReleaseArtifact: libobs-$(ReleaseName)-$(Build.BuildId)-win32-x64
   DependenciesUrl: https://obsproject.com/downloads/dependencies2017.zip
   VLCLibPath: $(Build.SourcesDirectory)\vlc
   VLCUrl: https://obsproject.com/downloads/vlc.zip
+  Version: 23.1.0-sl
+  BuildNumber: 0
+  Counter: $[counter(variables['BuildNumber'], 547)]
+  ReleaseArtifact: libobs-$(ReleaseName)-$(Version).$(Counter)-win32-x64
 
 steps:
 - script: | 
@@ -86,14 +89,13 @@ steps:
   inputs:
     rootFolderOrFile: $(InstallPath)
     includeRootFolder: true
-    replaceExistingArchive: true
     archiveType: 7z
-    archiveFile: $(ReleaseArtifact)
+    archiveFile: '$(ReleaseArtifact).7z'
   displayName: 'Generate artifact'
 
 - task: PublishBuildArtifacts@1
   inputs: 
-    pathtoPublish: $(Build.SourcesDirectory)\$(ReleaseArtifact)
+    pathtoPublish: $(Build.SourcesDirectory)\$(ReleaseArtifact).7z
     artifactName: $(ReleaseArtifact).7z
   displayName: 'Publish artifact'
 
