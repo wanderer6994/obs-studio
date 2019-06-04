@@ -1687,11 +1687,9 @@ bool obs_output_can_begin_data_capture(const obs_output_t *output,
 
 static inline void ensure_force_initialize_encoder(obs_encoder_t* encoder)
 {
-	if (encoder) {
-		pthread_mutex_lock(&encoder->init_mutex);
-		encoder->initialized = false;
-		pthread_mutex_unlock(&encoder->init_mutex);
-	}
+	pthread_mutex_lock(&encoder->init_mutex);
+	encoder->initialized = false;
+	pthread_mutex_unlock(&encoder->init_mutex);
 }
 
 static inline bool initialize_audio_encoders(obs_output_t *output,
