@@ -418,6 +418,13 @@ static void get_nb_frames(void *data, calldata_t *cd)
 		return;
 	}
 
+	pthread_mutex_lock(&s->media.mutex);
+
+	if (s->media.stopping || !s->media.active) {
+		pthread_mutex_unlock(&s->media.mutex);
+		return;
+	}
+
 	int video_stream_index = av_find_best_stream(s->media.fmt,
 			AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
 
@@ -425,6 +432,7 @@ static void get_nb_frames(void *data, calldata_t *cd)
 		FF_BLOG(LOG_WARNING, "Getting number of frames failed: No "
 				"video stream in media file!");
 		calldata_set_int(cd, "num_frames", frames);
+		pthread_mutex_unlock(&s->media.mutex);
 		return;
 	}
 
@@ -442,7 +450,7 @@ static void get_nb_frames(void *data, calldata_t *cd)
 				(double)avg_frame_rate.den);
 	}
 
-	if (stream->codec->width > 0 && stream->codec->height > 0) {
+	if (stream->codec && stream->codec->width > 0 && stream->codec->height > 0) {
 		width  = stream->codec->width;
 		height = stream->codec->height;
 		pix_format = s->media.pix_format;
@@ -452,6 +460,21 @@ static void get_nb_frames(void *data, calldata_t *cd)
 	calldata_set_int(cd, "width", width);
 	calldata_set_int(cd, "height", height);
 	calldata_set_int(cd, "pix_format", pix_format);
+	pthread_mutex_unlock(&s->media.mutex);
+}
+
+static void get_playing(void *data, calldata_t *cd)
+{
+	struct ffmpeg_source *s = data;
+	bool playing = false;
+
+	if (s->media.fmt) {
+		pthread_mutex_lock(&s->media.mutex);
+		playing = s->media.playing;
+		pthread_mutex_unlock(&s->media.mutex);
+	}
+
+	calldata_set_bool(cd, "playing", playing);
 }
 
 static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)
@@ -472,6 +495,8 @@ static void *ffmpeg_source_create(obs_data_t *settings, obs_source_t *source)
 			get_duration, s);
 	proc_handler_add(ph, "void get_nb_frames(out int num_frames)",
 			get_nb_frames, s);
+	proc_handler_add(ph, "void get_playing(out bool active)",
+		get_playing, s);
 
 	ffmpeg_source_update(s, settings);
 	return s;

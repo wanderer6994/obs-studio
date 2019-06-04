@@ -696,6 +696,7 @@ static inline bool mp_media_thread(mp_media_t *m)
 		bool timeout = false;
 
 		pthread_mutex_lock(&m->mutex);
+		m->playing = true;
 		is_active = m->active;
 		pthread_mutex_unlock(&m->mutex);
 
@@ -791,6 +792,9 @@ static inline bool mp_media_thread(mp_media_t *m)
 		}
 	}
 	clear_cache(m);
+	pthread_mutex_lock(&m->mutex);
+	m->playing = false;
+	pthread_mutex_unlock(&m->mutex);
 	return true;
 }
 
@@ -854,6 +858,7 @@ bool mp_media_init(mp_media_t *media, const struct mp_media_info *info)
 	media->speed = info->speed;
 	media->is_local_file = info->is_local_file;
 	media->enable_caching = info->enable_caching;
+	media->playing = false;
 
 	if (!info->is_local_file || media->speed < 1 || media->speed > 200)
 		media->speed = 100;
@@ -931,10 +936,10 @@ void mp_media_play(mp_media_t *m, bool loop)
 void mp_media_stop(mp_media_t *m)
 {
 	pthread_mutex_lock(&m->mutex);
+	m->stopping = true;
 	if (m->active) {
 		m->reset = true;
 		m->active = false;
-		m->stopping = true;
 		os_sem_post(m->sem);
 	}
 	pthread_mutex_unlock(&m->mutex);
