@@ -952,7 +952,7 @@ static bool rtmp_stream_start(void *data)
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
-	if (!obs_output_initialize_encoders(stream->output, 0, true))
+	if (!obs_output_initialize_encoders(stream->output, OBS_OUTPUT_FORCE_ENCODER))
 		return false;
 
 	os_atomic_set_bool(&stream->connecting, true);
