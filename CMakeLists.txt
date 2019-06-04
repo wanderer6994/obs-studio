@@ -7,6 +7,7 @@ endif()
 
 if(MSVC)
   add_definitions(/MP)
+  add_definitions(/debug:fastlink)
 endif()
 
 project(obs-studio)
