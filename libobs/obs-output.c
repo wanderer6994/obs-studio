@@ -1761,7 +1761,7 @@ bool obs_output_initialize_encoders(obs_output_t *output, uint32_t flags)
 	convert_flags(output, flags, &encoded, &has_video, &has_audio,
 			&has_service, &force_encoder);
 
-	if(output->video_encoder && force_encoder && *force_encoder)
+	if(output->video_encoder && force_encoder)
 		ensure_force_initialize_encoder(output->video_encoder);
 
 	if (!encoded)
@@ -1770,7 +1770,7 @@ bool obs_output_initialize_encoders(obs_output_t *output, uint32_t flags)
 		return false;
 	if (has_video && !obs_encoder_initialize(output->video_encoder))
 		return false;
-	if (has_audio && !initialize_audio_encoders(output, num_mixes, *force_encoder))
+	if (has_audio && !initialize_audio_encoders(output, num_mixes, force_encoder))
 		return false;
 
 	if (has_video && has_audio)
