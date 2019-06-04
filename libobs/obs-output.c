@@ -1685,10 +1685,23 @@ bool obs_output_can_begin_data_capture(const obs_output_t *output,
 			has_service);
 }
 
+static inline void ensure_force_initialize_encoder(obs_encoder_t* encoder)
+{
+	if (encoder) {
+		pthread_mutex_lock(&encoder->init_mutex);
+		encoder->initialized = false;
+		pthread_mutex_unlock(&encoder->init_mutex);
+	}
+}
+
 static inline bool initialize_audio_encoders(obs_output_t *output,
-		size_t num_mixes)
+		size_t num_mixes, bool force_encoder)
 {
 	for (size_t i = 0; i < num_mixes; i++) {
+
+		if(output->audio_encoders[i] && force_encoder)
+			ensure_force_initialize_encoder(output->video_encoder);
+
 		if (!obs_encoder_initialize(output->audio_encoders[i])) {
 			return false;
 		}
@@ -1748,13 +1761,16 @@ bool obs_output_initialize_encoders(obs_output_t *output, uint32_t flags)
 	convert_flags(output, flags, &encoded, &has_video, &has_audio,
 			&has_service, &force_encoder);
 
+	if(output->video_encoder && force_encoder && *force_encoder)
+		ensure_force_initialize_encoder(output->video_encoder);
+
 	if (!encoded)
 		return false;
 	if (has_service && !obs_service_initialize(output->service, output))
 		return false;
-	if (has_video && !obs_encoder_initialize(output->video_encoder, *force_encoder))
+	if (has_video && !obs_encoder_initialize(output->video_encoder))
 		return false;
-	if (has_audio && !initialize_audio_encoders(output, num_mixes))
+	if (has_audio && !initialize_audio_encoders(output, num_mixes, *force_encoder))
 		return false;
 
 	if (has_video && has_audio)
