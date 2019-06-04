@@ -1754,7 +1754,8 @@ EXPORT bool obs_output_can_begin_data_capture(const obs_output_t *output,
 
 /** Initializes encoders (if any) */
 EXPORT bool obs_output_initialize_encoders(obs_output_t *output,
-		uint32_t flags);
+		uint32_t flags,
+		bool force = false);
 
 /**
  * Begins data capture from media/encoders.

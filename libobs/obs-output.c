@@ -1734,7 +1734,7 @@ static inline void pair_encoders(obs_output_t *output, size_t num_mixes)
 	}
 }
 
-bool obs_output_initialize_encoders(obs_output_t *output, uint32_t flags)
+bool obs_output_initialize_encoders(obs_output_t *output, uint32_t flags, bool force)
 {
 	bool encoded, has_video, has_audio, has_service;
 	size_t num_mixes = num_audio_mixes(output);
@@ -1751,7 +1751,7 @@ bool obs_output_initialize_encoders(obs_output_t *output, uint32_t flags)
 		return false;
 	if (has_service && !obs_service_initialize(output->service, output))
 		return false;
-	if (has_video && !obs_encoder_initialize(output->video_encoder))
+	if (has_video && !obs_encoder_initialize(output->video_encoder, force))
 		return false;
 	if (has_audio && !initialize_audio_encoders(output, num_mixes))
 		return false;

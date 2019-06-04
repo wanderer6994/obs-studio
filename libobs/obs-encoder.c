@@ -475,14 +475,14 @@ void *obs_encoder_create_rerouted(obs_encoder_t *encoder, const char *reroute_id
 	return NULL;
 }
 
-bool obs_encoder_initialize(obs_encoder_t *encoder)
+bool obs_encoder_initialize(obs_encoder_t *encoder, bool force)
 {
 	bool success;
 
 	if (!encoder) return false;
 
 	pthread_mutex_lock(&encoder->init_mutex);
-	encoder->initialized = false;
+	encoder->initialized = force ? false : encoder->initialized;
 	success = obs_encoder_initialize_internal(encoder);
 	pthread_mutex_unlock(&encoder->init_mutex);
 
