@@ -35,9 +35,7 @@ variables:
   VLCLibPath: $(Build.SourcesDirectory)\vlc
   VLCUrl: https://obsproject.com/downloads/vlc.zip
   Version: 23.1.0-sl
-  BuildNumber: 0
-  Counter: $[counter(variables['BuildNumber'], 547)]
-  ReleaseArtifact: libobs-$(ReleaseName)-$(Version).$(Counter)-win32-x64
+  ReleaseArtifact: libobs-$(ReleaseName)-$(Version).$(BuildNumber)-win32-x64
 
 steps:
 - script: | 
