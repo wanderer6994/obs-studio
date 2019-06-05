@@ -124,7 +124,7 @@ static void color_grade_filter_destroy(void *data)
 	bfree(filter);
 }
 
-static void color_grade_filter_render(void *data, gs_effect_t *effect)
+static void color_grade_filter_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct lut_filter_data *filter = data;
 	obs_source_t *target = obs_filter_get_target(filter->context);

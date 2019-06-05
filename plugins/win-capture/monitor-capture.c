@@ -144,7 +144,7 @@ static void monitor_capture_tick(void *data, float seconds)
 	UNUSED_PARAMETER(seconds);
 }
 
-static void monitor_capture_render(void *data, gs_effect_t *effect)
+static void monitor_capture_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct monitor_capture *capture = data;
 	dc_capture_render(&capture->data,

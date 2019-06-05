@@ -62,7 +62,7 @@ static obs_properties_t *color_source_properties(void *unused)
 	return props;
 }
 
-static void color_source_render(void *data, gs_effect_t *effect)
+static void color_source_render(void *data, gs_effect_t *effect, bool custom)
 {
 	UNUSED_PARAMETER(effect);
 

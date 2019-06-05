@@ -171,10 +171,10 @@ static void luma_wipe_callback(void *data, gs_texture_t *a, gs_texture_t *b,
 		gs_draw_sprite(NULL, 0, cx, cy);
 }
 
-void luma_wipe_video_render(void *data, gs_effect_t *effect)
+void luma_wipe_video_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct luma_wipe_info *lwipe = data;
-	obs_transition_video_render(lwipe->source, luma_wipe_callback);
+	obs_transition_video_render(lwipe->source, luma_wipe_callback, custom);
 	UNUSED_PARAMETER(effect);
 }
 

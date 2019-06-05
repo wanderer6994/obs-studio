@@ -200,7 +200,7 @@ static void draw_frame(struct gpu_delay_filter_data *f)
 	}
 }
 
-static void gpu_delay_filter_render(void *data, gs_effect_t *effect)
+static void gpu_delay_filter_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct gpu_delay_filter_data *f = data;
 	obs_source_t *target = obs_filter_get_target(f->context);
@@ -238,7 +238,7 @@ static void gpu_delay_filter_render(void *data, gs_effect_t *effect)
 		if (target == parent && !custom_draw && !async)
 			obs_source_default_render(target);
 		else
-			obs_source_video_render(target);
+			obs_source_video_render(target, true);
 
 		gs_texrender_end(frame.render);
 	}

@@ -220,7 +220,7 @@ void OBSBasicProperties::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 			-100.0f, 100.0f);
 	gs_set_viewport(x, y, newCX, newCY);
 
-	obs_source_video_render(window->source);
+	obs_source_video_render(window->source, false);
 
 	gs_projection_pop();
 	gs_viewport_pop();

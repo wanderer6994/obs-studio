@@ -74,7 +74,7 @@ static void *sharpness_create(obs_data_t *settings, obs_source_t *context)
 	return filter;
 }
 
-static void sharpness_render(void *data, gs_effect_t *effect)
+static void sharpness_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct sharpness_data *filter = data;
 

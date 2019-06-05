@@ -636,7 +636,7 @@ static inline void render_child(obs_source_t *transition,
 
 		gs_matrix_push();
 		gs_matrix_mul(&transition->transition_matrices[idx]);
-		obs_source_video_render(child);
+		obs_source_video_render(child, false);
 		gs_matrix_pop();
 
 		gs_texrender_end(transition->transition_texrender[idx]);
@@ -666,7 +666,7 @@ static inline void handle_stop(obs_source_t *transition)
 }
 
 void obs_transition_video_render(obs_source_t *transition,
-		obs_transition_video_render_callback_t callback)
+		obs_transition_video_render_callback_t callback, bool custom)
 {
 	struct transition_state state;
 	struct matrix4 matrices[2];
@@ -726,14 +726,14 @@ void obs_transition_video_render(obs_source_t *transition,
 		if (state.s[1]) {
 			gs_matrix_push();
 			gs_matrix_mul(&matrices[1]);
-			obs_source_video_render(state.s[1]);
+			obs_source_video_render(state.s[1], custom);
 			gs_matrix_pop();
 		}
 	} else {
 		if (state.s[0]) {
 			gs_matrix_push();
 			gs_matrix_mul(&matrices[0]);
-			obs_source_video_render(state.s[0]);
+			obs_source_video_render(state.s[0], custom);
 			gs_matrix_pop();
 		}
 	}
@@ -789,7 +789,7 @@ bool obs_transition_video_render_direct(obs_source_t *transition,
 	if (state.s[idx]) {
 		gs_matrix_push();
 		gs_matrix_mul(&matrices[idx]);
-		obs_source_video_render(state.s[idx]);
+		obs_source_video_render(state.s[idx], false);
 		gs_matrix_pop();
 	}
 

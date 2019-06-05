@@ -249,7 +249,7 @@ static void scale_filter_tick(void *data, float seconds)
 	UNUSED_PARAMETER(seconds);
 }
 
-static void scale_filter_render(void *data, gs_effect_t *effect)
+static void scale_filter_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct scale_filter_data *filter = data;
 	const char *technique = filter->undistort ?

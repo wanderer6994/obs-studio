@@ -3372,7 +3372,7 @@ void OBSBasic::RenderMain(void *data, uint32_t cx, uint32_t cy)
 		OBSScene scene = window->GetCurrentScene();
 		obs_source_t *source = obs_scene_get_source(scene);
 		if (source)
-			obs_source_video_render(source);
+			obs_source_video_render(source, false);
 	} else {
 		obs_render_main_texture();
 	}

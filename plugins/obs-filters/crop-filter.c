@@ -178,7 +178,7 @@ static void crop_filter_tick(void *data, float seconds)
 	UNUSED_PARAMETER(seconds);
 }
 
-static void crop_filter_render(void *data, gs_effect_t *effect)
+static void crop_filter_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct crop_filter_data *filter = data;
 

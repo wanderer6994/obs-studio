@@ -102,7 +102,7 @@ static void stinger_destroy(void *data)
 	bfree(s);
 }
 
-static void stinger_video_render(void *data, gs_effect_t *effect)
+static void stinger_video_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct stinger_info *s = data;
 
@@ -131,7 +131,7 @@ static void stinger_video_render(void *data, gs_effect_t *effect)
 
 	gs_matrix_push();
 	gs_matrix_scale3f(scale_x, scale_y, 1.0f);
-	obs_source_video_render(s->media_source);
+	obs_source_video_render(s->media_source, true);
 	gs_matrix_pop();
 
 	UNUSED_PARAMETER(effect);

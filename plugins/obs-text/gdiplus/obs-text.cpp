@@ -1056,7 +1056,7 @@ void text_tick(void *data, float seconds)
 	source->Tick(seconds);
 }
 
-void text_render(void *data, gs_effect_t *effect)
+void text_render(void *data, gs_effect_t *effect, bool custom)
 {
 	reinterpret_cast<TextSource*>(data)->Render();
 }

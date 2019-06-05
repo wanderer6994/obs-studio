@@ -1779,7 +1779,7 @@ static inline void game_capture_render_cursor(struct game_capture *gc)
 			gc->global_hook_info->base_cy);
 }
 
-static void game_capture_render(void *data, gs_effect_t *effect)
+static void game_capture_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct game_capture *gc = data;
 	if (!gc->texture || !gc->active)

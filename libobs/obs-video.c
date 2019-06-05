@@ -141,11 +141,44 @@ static inline void render_main_texture(struct obs_core_video *video,
 
 	pthread_mutex_unlock(&obs->data.draw_callbacks_mutex);
 
-	obs_view_render(&obs->data.main_view);
+	obs_view_render(&obs->data.main_view, false);
 
 	video->textures_rendered[cur_texture] = true;
 
 	profile_end(render_main_texture_name);
+}
+
+static const char *render_custom_texture_name = "render_custom_texture";
+static inline void render_custom_texture(struct obs_core_video *video,
+	int cur_texture)
+{
+	profile_start(render_custom_texture_name);
+
+	struct vec4 clear_color;
+	vec4_set(&clear_color, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	gs_set_render_target(video->custom_textures[cur_texture], NULL);
+	gs_clear(GS_CLEAR_COLOR, &clear_color, 1.0f, 0);
+
+	set_render_size(video->base_width, video->base_height);
+
+	pthread_mutex_lock(&obs->data.draw_callbacks_mutex);
+
+	for (size_t i = obs->data.draw_callbacks.num; i > 0; i--) {
+		struct draw_callback *callback;
+		callback = obs->data.draw_callbacks.array + (i - 1);
+
+		callback->draw(callback->param,
+			video->base_width, video->base_height);
+	}
+
+	pthread_mutex_unlock(&obs->data.draw_callbacks_mutex);
+
+	obs_view_render(&obs->data.main_view, true);
+
+	video->textures_customized[cur_texture] = true;
+
+	profile_end(render_custom_texture_name);
 }
 
 static inline gs_effect_t *get_scale_effect_internal(
@@ -201,7 +234,8 @@ static inline void render_output_texture(struct obs_core_video *video,
 {
 	profile_start(render_output_texture_name);
 
-	gs_texture_t *texture = video->render_textures[prev_texture];
+	//gs_texture_t *texture = video->render_textures[prev_texture];
+	gs_texture_t *texture = video->custom_textures[prev_texture];
 	gs_texture_t *target  = video->output_textures[cur_texture];
 	uint32_t     width   = gs_texture_get_width(target);
 	uint32_t     height  = gs_texture_get_height(target);
@@ -497,6 +531,7 @@ static inline void render_video(struct obs_core_video *video,
 	gs_set_cull_mode(GS_NEITHER);
 
 	render_main_texture(video, cur_texture);
+	render_custom_texture(video, cur_texture);
 
 	if (raw_active || gpu_active) {
 		render_output_texture(video, cur_texture, prev_texture);

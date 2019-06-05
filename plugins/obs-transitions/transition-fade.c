@@ -61,10 +61,10 @@ static void fade_callback(void *data, gs_texture_t *a, gs_texture_t *b, float t,
 		gs_draw_sprite(NULL, 0, cx, cy);
 }
 
-static void fade_video_render(void *data, gs_effect_t *effect)
+static void fade_video_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct fade_info *fade = data;
-	obs_transition_video_render(fade->source, fade_callback);
+	obs_transition_video_render(fade->source, fade_callback, custom);
 	UNUSED_PARAMETER(effect);
 }
 

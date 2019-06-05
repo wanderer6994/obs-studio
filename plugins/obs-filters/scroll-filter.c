@@ -162,7 +162,7 @@ static void scroll_filter_tick(void *data, float seconds)
 		filter->offset.y -= 1.0f;
 }
 
-static void scroll_filter_render(void *data, gs_effect_t *effect)
+static void scroll_filter_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct scroll_filter_data *filter = data;
 	struct vec2 mul_val;

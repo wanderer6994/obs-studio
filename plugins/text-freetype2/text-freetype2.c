@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
 Copyright (C) 2014 by Nibbles
 
 This program is free software: you can redistribute it and/or modify
@@ -217,7 +217,7 @@ static void ft2_source_destroy(void *data)
 	bfree(srcdata);
 }
 
-static void ft2_source_render(void *data, gs_effect_t *effect)
+static void ft2_source_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct ft2_source *srcdata = data;
 	if (srcdata == NULL) return;

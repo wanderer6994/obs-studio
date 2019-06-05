@@ -144,7 +144,7 @@ static uint32_t image_source_getheight(void *data)
 	return context->if2.image.cy;
 }
 
-static void image_source_render(void *data, gs_effect_t *effect)
+static void image_source_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct image_source *context = data;
 

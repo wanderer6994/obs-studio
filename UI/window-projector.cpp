@@ -506,7 +506,7 @@ void OBSProjector::OBSRenderMultiview(void *data, uint32_t cx, uint32_t cy)
 		gs_matrix_translate3f(window->siX, window->siY, 0.0f);
 		gs_matrix_scale3f(window->siScaleX, window->siScaleY, 1.0f);
 		setRegion(window->siX, window->siY, window->siCX, window->siCY);
-		obs_source_video_render(src);
+		obs_source_video_render(src, false);
 		endRegion();
 		gs_matrix_pop();
 
@@ -530,7 +530,7 @@ void OBSProjector::OBSRenderMultiview(void *data, uint32_t cx, uint32_t cy)
 		drawBox(obs_source_get_width(label),
 				obs_source_get_height(label) +
 				int(window->sourceY * 0.015f), labelColor);
-		obs_source_video_render(label);
+		obs_source_video_render(label, false);
 		gs_matrix_pop();
 	}
 
@@ -552,7 +552,7 @@ void OBSProjector::OBSRenderMultiview(void *data, uint32_t cx, uint32_t cy)
 	setRegion(window->sourceX, window->sourceY, window->ppiCX,
 			window->ppiCY);
 	if (studioMode)
-		obs_source_video_render(previewSrc);
+		obs_source_video_render(previewSrc, false);
 	else
 		obs_render_main_texture();
 	if (drawSafeArea) {
@@ -579,7 +579,7 @@ void OBSProjector::OBSRenderMultiview(void *data, uint32_t cx, uint32_t cy)
 		drawBox(obs_source_get_width(previewLabel),
 				obs_source_get_height(previewLabel) +
 				int(window->pvwprgCX * 0.015f), labelColor);
-		obs_source_video_render(previewLabel);
+		obs_source_video_render(previewLabel, false);
 		gs_matrix_pop();
 	}
 
@@ -613,7 +613,7 @@ void OBSProjector::OBSRenderMultiview(void *data, uint32_t cx, uint32_t cy)
 		drawBox(obs_source_get_width(programLabel),
 				obs_source_get_height(programLabel) +
 				int(window->pvwprgCX * 0.015f), labelColor);
-		obs_source_video_render(programLabel);
+		obs_source_video_render(programLabel, false);
 		gs_matrix_pop();
 	}
 
@@ -680,7 +680,7 @@ void OBSProjector::OBSRender(void *data, uint32_t cx, uint32_t cy)
 	}
 
 	if (source)
-		obs_source_video_render(source);
+		obs_source_video_render(source, false);
 	else
 		obs_render_main_texture();
 

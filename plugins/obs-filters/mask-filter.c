@@ -166,7 +166,7 @@ static void mask_filter_tick(void *data, float t)
 	}
 }
 
-static void mask_filter_render(void *data, gs_effect_t *effect)
+static void mask_filter_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct mask_filter_data *filter = data;
 	obs_source_t *target = obs_filter_get_target(filter->context);

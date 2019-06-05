@@ -241,6 +241,13 @@ static bool obs_init_textures(struct obs_video_info *ovi)
 		if (!video->render_textures[i])
 			return false;
 
+		video->custom_textures[i] = gs_texture_create(
+			ovi->base_width, ovi->base_height,
+			GS_RGBA, 1, NULL, GS_RENDER_TARGET);
+
+		if (!video->custom_textures[i])
+			return false;
+
 		video->output_textures[i] = gs_texture_create(
 				ovi->output_width, ovi->output_height,
 				GS_RGBA, 1, NULL, GS_RENDER_TARGET);
@@ -486,12 +493,14 @@ static void obs_free_video(void)
 		for (size_t i = 0; i < NUM_TEXTURES; i++) {
 			gs_stagesurface_destroy(video->copy_surfaces[i]);
 			gs_texture_destroy(video->render_textures[i]);
+			gs_texture_destroy(video->custom_textures[i]);
 			gs_texture_destroy(video->convert_textures[i]);
 			gs_texture_destroy(video->convert_uv_textures[i]);
 			gs_texture_destroy(video->output_textures[i]);
 
 			video->copy_surfaces[i]       = NULL;
 			video->render_textures[i]     = NULL;
+			video->custom_textures[i]     = NULL;
 			video->convert_textures[i]    = NULL;
 			video->convert_uv_textures[i] = NULL;
 			video->output_textures[i]     = NULL;
@@ -1625,7 +1634,7 @@ proc_handler_t *obs_get_proc_handler(void)
 void obs_render_main_view(void)
 {
 	if (!obs) return;
-	obs_view_render(&obs->data.main_view);
+	obs_view_render(&obs->data.main_view, false);
 }
 
 void obs_render_main_texture(void)

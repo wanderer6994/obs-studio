@@ -28,10 +28,10 @@ static void cut_destroy(void *data)
 	bfree(cut);
 }
 
-static void cut_video_render(void *data, gs_effect_t *effect)
+static void cut_video_render(void *data, gs_effect_t *effect, bool custom)
 {
 	struct cut_info *cut = data;
-	obs_transition_video_render(cut->source, NULL);
+	obs_transition_video_render(cut->source, NULL, custom);
 	UNUSED_PARAMETER(effect);
 }
 
