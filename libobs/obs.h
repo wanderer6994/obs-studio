@@ -135,6 +135,12 @@ enum obs_bounds_type {
 	OBS_BOUNDS_MAX_ONLY,        /**< no scaling, maximum size only */
 };
 
+enum obs_rendering_mode {
+	OBS_MAIN_RENDERING,
+	OBS_STREAMING_RENDERING,
+	OBS_RECORDING_RENDERING,
+};
+
 struct obs_transform_info {
 	struct vec2          pos;
 	float                rot;
@@ -630,6 +636,12 @@ EXPORT void obs_render_main_view(void);
 
 /** Renders the last main output texture */
 EXPORT void obs_render_main_texture(void);
+
+/** Sets rendering mode*/
+EXPORT void obs_set_rendering_mode(enum obs_rendering_mode mode);
+
+/** Gets current rendering mode */
+EXPORT enum obs_rendering_mode obs_get_rendering_mode(void);
 
 /** Returns the last main output texture.  This can return NULL if the texture
  * is unavailable. */

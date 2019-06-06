@@ -40,6 +40,7 @@
 #define MICROSECOND_DEN 1000000
 #define NUM_ENCODE_TEXTURES 3
 #define NUM_ENCODE_TEXTURE_FRAMES_TO_WAIT 1
+#define NUM_RENDERING_MODES 3
 
 static inline int64_t packet_dts_usec(struct encoder_packet *packet)
 {
@@ -237,11 +238,9 @@ struct obs_tex_frame {
 	bool released;
 };
 
-struct obs_core_video {
-	graphics_t                      *graphics;
+struct obs_textures {
 	gs_stagesurf_t                  *copy_surfaces[NUM_TEXTURES];
 	gs_texture_t                    *render_textures[NUM_TEXTURES];
-	gs_texture_t                    *custom_textures[NUM_TEXTURES];
 	gs_texture_t                    *output_textures[NUM_TEXTURES];
 	gs_texture_t                    *convert_textures[NUM_TEXTURES];
 	gs_texture_t                    *convert_uv_textures[NUM_TEXTURES];
@@ -250,6 +249,11 @@ struct obs_core_video {
 	bool                            textures_output[NUM_TEXTURES];
 	bool                            textures_copied[NUM_TEXTURES];
 	bool                            textures_converted[NUM_TEXTURES];
+};
+
+struct obs_core_video {
+	graphics_t                      *graphics;
+	struct obs_textures             textures[NUM_RENDERING_MODES];
 	bool                            using_nv12_tex;
 	struct circlebuf                vframe_info_buffer;
 	struct circlebuf                vframe_info_buffer_gpu;
@@ -428,6 +432,8 @@ struct obs_core {
 	struct obs_core_audio           audio;
 	struct obs_core_data            data;
 	struct obs_core_hotkeys         hotkeys;
+
+	enum obs_rendering_mode		rendering_mode;
 };
 
 extern struct obs_core *obs;
@@ -599,7 +605,8 @@ struct obs_source {
 	/* used to temporarily disable sources if needed */
 	bool                            enabled;
 
-	bool				custom_rendering;
+	bool				showing_recording;
+	bool				showing_streaming;
 
 	/* timing (if video is present, is based upon video) */
 	volatile bool                   timing_set;

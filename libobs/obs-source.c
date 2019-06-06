@@ -177,11 +177,12 @@ bool obs_source_init(struct obs_source *source)
 	source->deinterlace_top_first = true;
 	source->control->source = source;
 	source->audio_mixers = 0xFF;
+	source->showing_streaming = true;
 
 	if (strcmp(source->info.id, "image_source") == 0)
-		source->custom_rendering = false;
+		source->showing_recording = false;
 	else
-		source->custom_rendering = true;
+		source->showing_recording = true;
 
 	if (is_audio_source(source)) {
 		pthread_mutex_lock(&obs->data.audio_sources_mutex);

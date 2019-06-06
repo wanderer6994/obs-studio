@@ -633,10 +633,26 @@ static void scene_video_render(void *data, gs_effect_t *effect, bool custom)
 
 	item = scene->first_item;
 	while (item) {
-		if (!custom && item->user_visible)
-			render_item(item);
-		if (custom && item->user_visible && item->source->custom_rendering)
-			render_item(item);
+		switch (obs_get_rendering_mode()) {
+		case OBS_MAIN_RENDERING:
+		{
+			if (item->user_visible)
+				render_item(item);
+			break;
+		}
+		case OBS_STREAMING_RENDERING:
+		{
+			if (item->user_visible && item->source->showing_streaming)
+				render_item(item);
+			break;
+		}
+		case OBS_RECORDING_RENDERING:
+		{
+			if (item->user_visible && item->source->showing_recording)
+				render_item(item);
+			break;
+		}
+		}
 
 		item = item->next;
 	}
