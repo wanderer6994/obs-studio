@@ -448,10 +448,10 @@ extern bool audio_callback(void *param,
 
 extern void start_raw_video(video_t *video,
 		const struct video_scale_info *conversion,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param);
 extern void stop_raw_video(video_t *video,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param);
 
 /* ------------------------------------------------------------------------- */

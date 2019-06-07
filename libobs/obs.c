@@ -2306,7 +2306,7 @@ uint32_t obs_get_lagged_frames(void)
 }
 
 void start_raw_video(video_t *v, const struct video_scale_info *conversion,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param)
 {
 	struct obs_core_video *video = &obs->video;
@@ -2315,7 +2315,7 @@ void start_raw_video(video_t *v, const struct video_scale_info *conversion,
 }
 
 void stop_raw_video(video_t *v,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param)
 {
 	struct obs_core_video *video = &obs->video;
