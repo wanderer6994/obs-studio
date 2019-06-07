@@ -217,7 +217,7 @@ static void ft2_source_destroy(void *data)
 	bfree(srcdata);
 }
 
-static void ft2_source_render(void *data, gs_effect_t *effect, bool custom)
+static void ft2_source_render(void *data, gs_effect_t *effect)
 {
 	struct ft2_source *srcdata = data;
 	if (srcdata == NULL) return;

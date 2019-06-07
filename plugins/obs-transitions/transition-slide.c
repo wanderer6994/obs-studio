@@ -103,10 +103,10 @@ static void slide_callback(void *data, gs_texture_t *a, gs_texture_t *b,
 		gs_draw_sprite(NULL, 0, cx, cy);
 }
 
-void slide_video_render(void *data, gs_effect_t *effect, bool custom)
+void slide_video_render(void *data, gs_effect_t *effect)
 {
 	struct slide_info *slide = data;
-	obs_transition_video_render(slide->source, slide_callback, custom);
+	obs_transition_video_render(slide->source, slide_callback);
 	UNUSED_PARAMETER(effect);
 }
 

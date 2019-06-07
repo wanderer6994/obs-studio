@@ -96,10 +96,10 @@ static void swipe_callback(void *data, gs_texture_t *a, gs_texture_t *b,
 		gs_draw_sprite(NULL, 0, cx, cy);
 }
 
-static void swipe_video_render(void *data, gs_effect_t *effect, bool custom)
+static void swipe_video_render(void *data, gs_effect_t *effect)
 {
 	struct swipe_info *swipe = data;
-	obs_transition_video_render(swipe->source, swipe_callback, custom);
+	obs_transition_video_render(swipe->source, swipe_callback);
 	UNUSED_PARAMETER(effect);
 }
 

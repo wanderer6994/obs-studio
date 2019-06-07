@@ -115,7 +115,7 @@ void obs_view_set_source(obs_view_t *view, uint32_t channel,
 	}
 }
 
-void obs_view_render(obs_view_t *view, bool custom)
+void obs_view_render(obs_view_t *view)
 {
 	if (!view) return;
 
@@ -131,7 +131,7 @@ void obs_view_render(obs_view_t *view, bool custom)
 				obs_source_release(source);
 				view->channels[i] = NULL;
 			} else {
-				obs_source_video_render(source, custom);
+				obs_source_video_render(source);
 			}
 		}
 	}

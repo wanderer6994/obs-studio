@@ -200,7 +200,7 @@ static void draw_frame(struct gpu_delay_filter_data *f)
 	}
 }
 
-static void gpu_delay_filter_render(void *data, gs_effect_t *effect, bool custom)
+static void gpu_delay_filter_render(void *data, gs_effect_t *effect)
 {
 	struct gpu_delay_filter_data *f = data;
 	obs_source_t *target = obs_filter_get_target(f->context);

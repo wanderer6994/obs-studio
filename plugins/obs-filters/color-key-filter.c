@@ -162,7 +162,7 @@ static void *color_key_create(obs_data_t *settings, obs_source_t *context)
 	return filter;
 }
 
-static void color_key_render(void *data, gs_effect_t *effect, bool custom)
+static void color_key_render(void *data, gs_effect_t *effect)
 {
 	struct color_key_filter_data *filter = data;
 

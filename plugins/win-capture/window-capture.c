@@ -230,7 +230,7 @@ static void wc_tick(void *data, float seconds)
 	obs_leave_graphics();
 }
 
-static void wc_render(void *data, gs_effect_t *effect, bool custom)
+static void wc_render(void *data, gs_effect_t *effect)
 {
 	struct window_capture *wc = data;
 	dc_capture_render(&wc->capture, obs_get_base_effect(OBS_EFFECT_OPAQUE));

@@ -613,7 +613,7 @@ static void update_transforms_and_prune_sources(obs_scene_t *scene,
 		resize_group(group_sceneitem);
 }
 
-static void scene_video_render(void *data, gs_effect_t *effect, bool custom)
+static void scene_video_render(void *data, gs_effect_t *effect)
 {
 	DARRAY(struct obs_scene_item*) remove_items;
 	struct obs_scene *scene = data;

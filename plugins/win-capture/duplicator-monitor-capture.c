@@ -207,7 +207,7 @@ static void draw_cursor(struct duplicator_capture *capture)
 		capture->rot % 180 == 0 ? capture->height : capture->width);
 }
 
-static void duplicator_capture_render(void *data, gs_effect_t *effect, bool custom)
+static void duplicator_capture_render(void *data, gs_effect_t *effect)
 {
 	struct duplicator_capture *capture = data;
 	gs_texture_t *texture;

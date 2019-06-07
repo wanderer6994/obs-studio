@@ -666,7 +666,7 @@ static inline void handle_stop(obs_source_t *transition)
 }
 
 void obs_transition_video_render(obs_source_t *transition,
-		obs_transition_video_render_callback_t callback, bool custom)
+		obs_transition_video_render_callback_t callback)
 {
 	struct transition_state state;
 	struct matrix4 matrices[2];
@@ -726,14 +726,14 @@ void obs_transition_video_render(obs_source_t *transition,
 		if (state.s[1]) {
 			gs_matrix_push();
 			gs_matrix_mul(&matrices[1]);
-			obs_source_video_render(state.s[1], custom);
+			obs_source_video_render(state.s[1]);
 			gs_matrix_pop();
 		}
 	} else {
 		if (state.s[0]) {
 			gs_matrix_push();
 			gs_matrix_mul(&matrices[0]);
-			obs_source_video_render(state.s[0], custom);
+			obs_source_video_render(state.s[0]);
 			gs_matrix_pop();
 		}
 	}

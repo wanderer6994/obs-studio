@@ -281,7 +281,7 @@ struct obs_source_info {
 	 *                be NULL, and the source is expected to process with
 	 *                an effect manually.
 	 */
-	void (*video_render)(void *data, gs_effect_t *effect, bool custom);
+	void (*video_render)(void *data, gs_effect_t *effect);
 
 	/**
 	 * Called to filter raw async video data.

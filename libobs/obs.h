@@ -760,7 +760,7 @@ EXPORT obs_source_t *obs_view_get_source(obs_view_t *view,
 		uint32_t channel);
 
 /** Renders the sources of this view context */
-EXPORT void obs_view_render(obs_view_t *view, bool custom);
+EXPORT void obs_view_render(obs_view_t *view);
 
 
 /* ------------------------------------------------------------------------- */
@@ -880,7 +880,7 @@ EXPORT obs_properties_t *obs_source_properties(const obs_source_t *source);
 EXPORT void obs_source_update(obs_source_t *source, obs_data_t *settings);
 
 /** Renders a video source. */
-EXPORT void obs_source_video_render(obs_source_t *source, bool custom);
+EXPORT void obs_source_video_render(obs_source_t *source);
 
 /** Gets the width of a source (if it has video) */
 EXPORT uint32_t obs_source_get_width(obs_source_t *source);
@@ -1318,7 +1318,7 @@ typedef float (*obs_transition_audio_mix_callback_t)(void *data, float t);
 EXPORT float obs_transition_get_time(obs_source_t *transition);
 
 EXPORT void obs_transition_video_render(obs_source_t *transition,
-		obs_transition_video_render_callback_t callback, bool custom);
+		obs_transition_video_render_callback_t callback);
 
 /** Directly renders its sub-source instead of to texture.  Returns false if no
  * longer transitioning */

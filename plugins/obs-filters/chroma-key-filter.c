@@ -186,7 +186,7 @@ static void *chroma_key_create(obs_data_t *settings, obs_source_t *context)
 	return filter;
 }
 
-static void chroma_key_render(void *data, gs_effect_t *effect, bool custom)
+static void chroma_key_render(void *data, gs_effect_t *effect)
 {
 	struct chroma_key_filter_data *filter = data;
 	obs_source_t *target = obs_filter_get_target(filter->context);

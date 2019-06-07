@@ -113,11 +113,11 @@ static void fade_to_color_callback(void *data, gs_texture_t *a, gs_texture_t *b,
 		gs_draw_sprite(NULL, 0, cx, cy);
 }
 
-static void fade_to_color_video_render(void *data, gs_effect_t *effect, bool custom)
+static void fade_to_color_video_render(void *data, gs_effect_t *effect)
 {
 	struct fade_to_color_info *fade_to_color = data;
 	obs_transition_video_render(fade_to_color->source,
-			fade_to_color_callback, custom);
+			fade_to_color_callback);
 	UNUSED_PARAMETER(effect);
 }
 
