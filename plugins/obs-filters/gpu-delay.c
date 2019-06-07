@@ -238,7 +238,7 @@ static void gpu_delay_filter_render(void *data, gs_effect_t *effect)
 		if (target == parent && !custom_draw && !async)
 			obs_source_default_render(target);
 		else
-			obs_source_video_render(target, true);
+			obs_source_video_render(target);
 
 		gs_texrender_end(frame.render);
 	}

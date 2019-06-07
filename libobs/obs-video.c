@@ -143,7 +143,7 @@ static inline void render_main_texture(struct obs_core_video *video,
 
 	pthread_mutex_unlock(&obs->data.draw_callbacks_mutex);
 
-	obs_view_render(&obs->data.main_view, false);
+	obs_view_render(&obs->data.main_view);
 
 	video->textures[mode].textures_rendered[cur_texture] = true;
 

@@ -1635,7 +1635,7 @@ proc_handler_t *obs_get_proc_handler(void)
 void obs_render_main_view(void)
 {
 	if (!obs) return;
-	obs_view_render(&obs->data.main_view, false);
+	obs_view_render(&obs->data.main_view);
 }
 
 void obs_render_main_texture(void)

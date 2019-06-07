@@ -636,7 +636,7 @@ static inline void render_child(obs_source_t *transition,
 
 		gs_matrix_push();
 		gs_matrix_mul(&transition->transition_matrices[idx]);
-		obs_source_video_render(child, false);
+		obs_source_video_render(child);
 		gs_matrix_pop();
 
 		gs_texrender_end(transition->transition_texrender[idx]);
@@ -789,7 +789,7 @@ bool obs_transition_video_render_direct(obs_source_t *transition,
 	if (state.s[idx]) {
 		gs_matrix_push();
 		gs_matrix_mul(&matrices[idx]);
-		obs_source_video_render(state.s[idx], false);
+		obs_source_video_render(state.s[idx]);
 		gs_matrix_pop();
 	}
 

@@ -652,7 +652,7 @@ static void ss_video_render(void *data, gs_effect_t *effect)
 	obs_source_t *transition = get_transition(ss);
 
 	if (transition) {
-		obs_source_video_render(transition, false);
+		obs_source_video_render(transition);
 		obs_source_release(transition);
 	}
 
