@@ -942,7 +942,17 @@ bool obs_transition_audio_render(obs_source_t *transition,
 						sample_rate, mix_b);
 		} else if (state.s[0]) {
 			memcpy(audio->output[0].data[0],
-					state.s[0]->audio_output_buf[0][0],
+					state.s[0]->audio_main_output_buf[0][0],
+					TOTAL_AUDIO_SIZE);
+
+			if (state.s[0]->showing_streaming)
+				memcpy(audio->output[0].data[0],
+					state.s[0]->audio_streaming_output_buf[0][0],
+					TOTAL_AUDIO_SIZE);
+
+			if (state.s[0]->showing_recording)
+				memcpy(audio->output[0].data[0],
+					state.s[0]->audio_recording_output_buf[0][0],
 					TOTAL_AUDIO_SIZE);
 		}
 

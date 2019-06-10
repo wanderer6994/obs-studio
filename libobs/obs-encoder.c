@@ -1077,6 +1077,14 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *data)
 	profile_start(receive_audio_name);
 
 	struct obs_encoder *encoder = param;
+	//struct audio_data  *data;
+
+	//if (strcmp(encoder->paired_encoder->context.name, "streaming_h264") == 0)
+	//	data = data2;
+	//else if (strcmp(encoder->paired_encoder->context.name, "recording_h264") == 0)
+	//	data = data2;
+	//else
+	//	return;
 
 	if (!encoder->first_received) {
 		encoder->first_raw_ts = data->timestamp;
