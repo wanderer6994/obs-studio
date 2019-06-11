@@ -1164,21 +1164,25 @@ static void reset_audio_data(obs_source_t *source, uint64_t os_time)
 
 	source->last_audio_main_input_buf_size = 0;
 
-	for (size_t i = 0; i < MAX_AUDIO_CHANNELS; i++) {
-		if (source->audio_streaming_input_buf[i].size)
-			circlebuf_pop_front(&source->audio_streaming_input_buf[i], NULL,
-				source->audio_streaming_input_buf[i].size);
+	if (source->showing_streaming) {
+		for (size_t i = 0; i < MAX_AUDIO_CHANNELS; i++) {
+			if (source->audio_streaming_input_buf[i].size)
+				circlebuf_pop_front(&source->audio_streaming_input_buf[i], NULL,
+					source->audio_streaming_input_buf[i].size);
+		}
+
+		source->last_audio_streaming_input_buf_size = 0;
+	}	
+
+	if (source->showing_recording) {
+		for (size_t i = 0; i < MAX_AUDIO_CHANNELS; i++) {
+			if (source->audio_recording_input_buf[i].size)
+				circlebuf_pop_front(&source->audio_recording_input_buf[i], NULL,
+					source->audio_recording_input_buf[i].size);
+		}
+
+		source->last_audio_recording_input_buf_size = 0;
 	}
-
-	source->last_audio_streaming_input_buf_size = 0;
-
-	for (size_t i = 0; i < MAX_AUDIO_CHANNELS; i++) {
-		if (source->audio_recording_input_buf[i].size)
-			circlebuf_pop_front(&source->audio_recording_input_buf[i], NULL,
-				source->audio_recording_input_buf[i].size);
-	}
-
-	source->last_audio_recording_input_buf_size = 0;
 
 	source->audio_ts = os_time;
 	source->next_audio_sys_ts_min = os_time;
@@ -4192,7 +4196,7 @@ static inline void process_audio_source_tick(obs_source_t *source,
 	// Streaming audio
 	pthread_mutex_lock(&source->audio_streaming_buf_mutex);
 
-	if (source->showing_streaming && source->audio_streaming_input_buf[0].size < size) {
+	if (source->showing_streaming && source->audio_streaming_input_buf[0].size >= size) {
 		for (size_t ch = 0; ch < channels; ch++)
 			circlebuf_peek_front(&source->audio_streaming_input_buf[ch],
 				source->audio_streaming_output_buf[0][ch],
@@ -4204,7 +4208,7 @@ static inline void process_audio_source_tick(obs_source_t *source,
 	// Recording audio
 	pthread_mutex_lock(&source->audio_recording_buf_mutex);
 
-	if (source->showing_recording && source->audio_recording_input_buf[0].size < size) {
+	if (source->showing_recording && source->audio_recording_input_buf[0].size >= size) {
 		for (size_t ch = 0; ch < channels; ch++)
 			circlebuf_peek_front(&source->audio_recording_input_buf[ch],
 				source->audio_recording_output_buf[0][ch],
@@ -4311,13 +4315,13 @@ void obs_source_get_audio_mix(const obs_source_t *source,
 			audio->output[mix].data[ch] =
 				source->audio_main_output_buf[mix][ch];
 
-			if (source->showing_streaming)
-				audio->output[mix].data[ch] =
-				source->audio_streaming_output_buf[mix][ch];
+			//if (source->showing_streaming)
+			//	audio->output[mix].data[ch] =
+			//	source->audio_streaming_output_buf[mix][ch];
 
-			if (source->showing_recording)
-				audio->output[mix].data[ch] =
-				source->audio_recording_output_buf[mix][ch];
+			//if (source->showing_recording)
+			//	audio->output[mix].data[ch] =
+			//	source->audio_recording_output_buf[mix][ch];
 		}
 	}
 }
