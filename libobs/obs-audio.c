@@ -299,19 +299,19 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	source->last_audio_main_input_buf_size = 0;
 
-	//if (source->showing_streaming) {
-	//	for (size_t ch = 0; ch < channels; ch++)
-	//		circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL, size);
+	if (source->showing_streaming) {
+		for (size_t ch = 0; ch < channels; ch++)
+			circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL, size);
 
-	//	source->last_audio_streaming_input_buf_size = 0;
-	//}
+		source->last_audio_streaming_input_buf_size = 0;
+	}
 
-	//if (source->showing_recording) {
-	//	for (size_t ch = 0; ch < channels; ch++)
-	//		circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL, size);
+	if (source->showing_recording) {
+		for (size_t ch = 0; ch < channels; ch++)
+			circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL, size);
 
-	//	source->last_audio_recording_input_buf_size = 0;
-	//}
+		source->last_audio_recording_input_buf_size = 0;
+	}
 #if DEBUG_AUDIO == 1
 	if (is_audio_source)
 		blog(LOG_DEBUG, "audio discarded, new ts: %"PRIu64,
