@@ -75,31 +75,31 @@ static inline void mix_audio(struct audio_output_data *mixes,
 			while (aud < end)
 				*(mix++) += *(aud++);
 
-			if (source->showing_streaming) {
-				register float *streaming_mix = mixes[mix_idx].data[ch];
-				register float *streaming_aud =
-					source->audio_streaming_output_buf[mix_idx][ch];
-				register float *streaming_end;
+			//if (source->showing_streaming) {
+			//	register float *streaming_mix = mixes[mix_idx].data[ch];
+			//	register float *streaming_aud =
+			//		source->audio_streaming_output_buf[mix_idx][ch];
+			//	register float *streaming_end;
 
-				streaming_mix += start_point;
-				streaming_end = streaming_aud + total_floats;
+			//	streaming_mix += start_point;
+			//	streaming_end = streaming_aud + total_floats;
 
-				while (streaming_aud < streaming_end)
-					*(streaming_mix++) += *(streaming_aud++);
-			}
+			//	while (streaming_aud < streaming_end)
+			//		*(streaming_mix++) += *(streaming_aud++);
+			//}
 
-			if (source->showing_recording) {
-				register float *recording_mix = mixes[mix_idx].data[ch];
-				register float *recording_aud =
-					source->audio_recording_output_buf[mix_idx][ch];
-				register float *recording_end;
+			//if (source->showing_recording) {
+			//	register float *recording_mix = mixes[mix_idx].data[ch];
+			//	register float *recording_aud =
+			//		source->audio_recording_output_buf[mix_idx][ch];
+			//	register float *recording_end;
 
-				recording_mix += start_point;
-				recording_end = recording_aud + total_floats;
+			//	recording_mix += start_point;
+			//	recording_end = recording_aud + total_floats;
 
-				while (recording_aud < recording_end)
-					*(mix++) += *(recording_aud++);
-			}
+			//	while (recording_aud < recording_end)
+			//		*(mix++) += *(recording_aud++);
+			//}
 		}
 	}
 }
@@ -119,29 +119,29 @@ static void ignore_audio(obs_source_t *source, size_t channels,
 			(uint64_t)sample_rate;
 	}
 
-	if (source->showing_streaming) {
-		size_t num_floats = source->audio_streaming_input_buf[0].size / sizeof(float);
+	//if (source->showing_streaming) {
+	//	size_t num_floats = source->audio_streaming_input_buf[0].size / sizeof(float);
 
-		if (num_floats) {
-			for (size_t ch = 0; ch < channels; ch++)
-				circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL,
-					source->audio_streaming_input_buf[ch].size);
+	//	if (num_floats) {
+	//		for (size_t ch = 0; ch < channels; ch++)
+	//			circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL,
+	//				source->audio_streaming_input_buf[ch].size);
 
-			source->last_audio_streaming_input_buf_size = 0;
-		}
-	}
+	//		source->last_audio_streaming_input_buf_size = 0;
+	//	}
+	//}
 
-	if (source->showing_recording) {
-		size_t num_floats = source->audio_recording_input_buf[0].size / sizeof(float);
+	//if (source->showing_recording) {
+	//	size_t num_floats = source->audio_recording_input_buf[0].size / sizeof(float);
 
-		if (num_floats) {
-			for (size_t ch = 0; ch < channels; ch++)
-				circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL,
-					source->audio_recording_input_buf[ch].size);
+	//	if (num_floats) {
+	//		for (size_t ch = 0; ch < channels; ch++)
+	//			circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL,
+	//				source->audio_recording_input_buf[ch].size);
 
-			source->last_audio_recording_input_buf_size = 0;
-		}
-	}
+	//		source->last_audio_recording_input_buf_size = 0;
+	//	}
+	//}
 }
 
 static bool discard_if_stopped(obs_source_t *source, size_t channels)
@@ -149,23 +149,23 @@ static bool discard_if_stopped(obs_source_t *source, size_t channels)
 	size_t last_size;
 	size_t size;
 
-	size_t last_streaming_size = -1;
-	size_t last_recording_size = -1;
-	size_t streaming_size = -1;
-	size_t recording_size = -1;
+	//size_t last_streaming_size = -1;
+	//size_t last_recording_size = -1;
+	//size_t streaming_size = -1;
+	//size_t recording_size = -1;
 
 	last_size = source->last_audio_main_input_buf_size;
 	size = source->audio_main_input_buf[0].size;
 
-	if (source->showing_streaming) {
-		last_streaming_size = source->last_audio_streaming_input_buf_size;
-		streaming_size = source->audio_streaming_input_buf[0].size;
-	}
+	//if (source->showing_streaming) {
+	//	last_streaming_size = source->last_audio_streaming_input_buf_size;
+	//	streaming_size = source->audio_streaming_input_buf[0].size;
+	//}
 
-	if (source->showing_recording) {
-		last_recording_size = source->last_audio_recording_input_buf_size;
-		recording_size = source->audio_recording_input_buf[0].size;
-	}
+	//if (source->showing_recording) {
+	//	last_recording_size = source->last_audio_recording_input_buf_size;
+	//	recording_size = source->audio_recording_input_buf[0].size;
+	//}
 
 	if (!size)
 		return false;
@@ -186,34 +186,34 @@ static bool discard_if_stopped(obs_source_t *source, size_t channels)
 			circlebuf_pop_front(&source->audio_main_input_buf[ch], NULL,
 				source->audio_main_input_buf[ch].size);
 
-			if (source->showing_streaming)
-				circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL,
-					source->audio_streaming_input_buf[ch].size);
-			if (source->showing_recording)
-				circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL,
-					source->audio_recording_input_buf[ch].size);
+			//if (source->showing_streaming)
+			//	circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL,
+			//		source->audio_streaming_input_buf[ch].size);
+			//if (source->showing_recording)
+			//	circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL,
+			//		source->audio_recording_input_buf[ch].size);
 		}
 
 		source->pending_stop = false;
 		source->audio_ts = 0;
-		source->last_audio_main_input_buf_size = 0;
+		//source->last_audio_main_input_buf_size = 0;
 
-		if (source->showing_streaming)
-			source->last_audio_streaming_input_buf_size = 0;
-		if (source->showing_recording)
-			source->last_audio_recording_input_buf_size = 0;
+		//if (source->showing_streaming)
+		//	source->last_audio_streaming_input_buf_size = 0;
+		//if (source->showing_recording)
+		//	source->last_audio_recording_input_buf_size = 0;
 #if DEBUG_AUDIO == 1
 		blog(LOG_DEBUG, "source audio data appears to have "
 				"stopped, clearing");
 #endif
 		return true;
 	} else {
-		source->last_audio_main_input_buf_size = size;
+		//source->last_audio_main_input_buf_size = size;
 
-		if (source->showing_streaming)
-			source->last_audio_streaming_input_buf_size = size;
-		if (source->showing_recording)
-			source->last_audio_recording_input_buf_size = size;
+		//if (source->showing_streaming)
+		//	source->last_audio_streaming_input_buf_size = size;
+		//if (source->showing_recording)
+		//	source->last_audio_recording_input_buf_size = size;
 		return false;
 	}
 }
@@ -299,19 +299,19 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	source->last_audio_main_input_buf_size = 0;
 
-	if (source->showing_streaming) {
-		for (size_t ch = 0; ch < channels; ch++)
-			circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL, size);
+	//if (source->showing_streaming) {
+	//	for (size_t ch = 0; ch < channels; ch++)
+	//		circlebuf_pop_front(&source->audio_streaming_input_buf[ch], NULL, size);
 
-		source->last_audio_streaming_input_buf_size = 0;
-	}
+	//	source->last_audio_streaming_input_buf_size = 0;
+	//}
 
-	if (source->showing_recording) {
-		for (size_t ch = 0; ch < channels; ch++)
-			circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL, size);
+	//if (source->showing_recording) {
+	//	for (size_t ch = 0; ch < channels; ch++)
+	//		circlebuf_pop_front(&source->audio_recording_input_buf[ch], NULL, size);
 
-		source->last_audio_recording_input_buf_size = 0;
-	}
+	//	source->last_audio_recording_input_buf_size = 0;
+	//}
 #if DEBUG_AUDIO == 1
 	if (is_audio_source)
 		blog(LOG_DEBUG, "audio discarded, new ts: %"PRIu64,
@@ -559,16 +559,16 @@ bool audio_callback(void *param,
 				continue;
 
 			pthread_mutex_lock(&source->audio_main_buf_mutex);
-			pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-			pthread_mutex_lock(&source->audio_recording_buf_mutex);
+			//pthread_mutex_lock(&source->audio_streaming_buf_mutex);
+			//pthread_mutex_lock(&source->audio_recording_buf_mutex);
 
 			if (source->audio_main_output_buf[0][0] && source->audio_ts)
 				mix_audio(mixes, source, channels, sample_rate,
 						&ts);
 
 			pthread_mutex_unlock(&source->audio_main_buf_mutex);
-			pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
-			pthread_mutex_unlock(&source->audio_recording_buf_mutex);
+			//pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
+			//pthread_mutex_unlock(&source->audio_recording_buf_mutex);
 		}
 	}
 
@@ -583,12 +583,12 @@ bool audio_callback(void *param,
 		// same method to an explanation why this is done.
 		if (source->control->ref.refs > -1) {
 			pthread_mutex_lock(&source->audio_main_buf_mutex);
-			pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-			pthread_mutex_lock(&source->audio_recording_buf_mutex);
+			//pthread_mutex_lock(&source->audio_streaming_buf_mutex);
+			//pthread_mutex_lock(&source->audio_recording_buf_mutex);
 			discard_audio(audio, source, channels, sample_rate, &ts);
 			pthread_mutex_unlock(&source->audio_main_buf_mutex);
-			pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
-			pthread_mutex_unlock(&source->audio_recording_buf_mutex);
+			//pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
+			//pthread_mutex_unlock(&source->audio_recording_buf_mutex);
 		}
 
 		source = (struct obs_source*)source->next_audio_source;
