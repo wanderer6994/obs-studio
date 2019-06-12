@@ -1062,7 +1062,7 @@ static bool scene_audio_render(void *data, uint64_t *ts_out,
 
 	item = scene->first_item;
 	while (item) {
-		if (!obs_source_audio_pending(item->source) && item->visible) {
+		if (!obs_source_audio_pending(item->source) && item->visible && item->source->showing_streaming) {
 			uint64_t source_ts =
 				obs_source_get_audio_timestamp(item->source);
 

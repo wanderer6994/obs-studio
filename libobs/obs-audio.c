@@ -43,7 +43,8 @@ static inline size_t convert_time_to_frames(size_t sample_rate, uint64_t t)
 	return (size_t)(t * (uint64_t)sample_rate / 1000000000ULL);
 }
 
-static inline void mix_audio(struct audio_output_data *mixes,
+static inline void mix_audio(struct audio_output_data *main_mixes,
+		struct audio_output_data *streaming_mixes, struct audio_output_data *recording_mixes,
 		obs_source_t *source, size_t channels, size_t sample_rate,
 		struct ts_info *ts)
 {
@@ -64,7 +65,7 @@ static inline void mix_audio(struct audio_output_data *mixes,
 
 	for (size_t mix_idx = 0; mix_idx < MAX_AUDIO_MIXES; mix_idx++) {
 		for (size_t ch = 0; ch < channels; ch++) {
-			register float *mix = mixes[mix_idx].data[ch];
+			register float *mix = main_mixes[mix_idx].data[ch];
 			register float *aud =
 				source->audio_main_output_buf[mix_idx][ch];
 			register float *end;
@@ -76,7 +77,7 @@ static inline void mix_audio(struct audio_output_data *mixes,
 				*(mix++) += *(aud++);
 
 			if (source->showing_streaming) {
-				register float *streaming_mix = mixes[mix_idx].data[ch];
+				register float *streaming_mix = streaming_mixes[mix_idx].data[ch];
 				register float *streaming_aud =
 					source->audio_streaming_output_buf[mix_idx][ch];
 				register float *streaming_end;
@@ -89,7 +90,7 @@ static inline void mix_audio(struct audio_output_data *mixes,
 			}
 
 			if (source->showing_recording) {
-				register float *recording_mix = mixes[mix_idx].data[ch];
+				register float *recording_mix = recording_mixes[mix_idx].data[ch];
 				register float *recording_aud =
 					source->audio_recording_output_buf[mix_idx][ch];
 				register float *recording_end;
@@ -98,7 +99,7 @@ static inline void mix_audio(struct audio_output_data *mixes,
 				recording_end = recording_aud + total_floats;
 
 				while (recording_aud < recording_end)
-					*(mix++) += *(recording_aud++);
+					*(recording_mix++) += *(recording_aud++);
 			}
 		}
 	}
@@ -469,7 +470,8 @@ static inline void release_audio_sources(struct obs_core_audio *audio)
 
 bool audio_callback(void *param,
 		uint64_t start_ts_in, uint64_t end_ts_in, uint64_t *out_ts,
-		uint32_t mixers, struct audio_output_data *mixes)
+		uint32_t mixers, struct audio_output_data *main_mixes,
+		struct audio_output_data *streaming_mixes, struct audio_output_data *recording_mixes)
 {
 	struct obs_core_data *data = &obs->data;
 	struct obs_core_audio *audio = &obs->audio;
@@ -535,6 +537,7 @@ bool audio_callback(void *param,
 		obs_source_t *source = audio->render_order.array[i];
 		obs_source_audio_render(source, mixers, channels, sample_rate,
 				audio_size);
+		int a = 0;
 	}
 
 	/* ------------------------------------------------ */
@@ -563,8 +566,8 @@ bool audio_callback(void *param,
 			pthread_mutex_lock(&source->audio_recording_buf_mutex);
 
 			if (source->audio_main_output_buf[0][0] && source->audio_ts)
-				mix_audio(mixes, source, channels, sample_rate,
-						&ts);
+				mix_audio(main_mixes, streaming_mixes, recording_mixes,
+						source, channels, sample_rate, &ts);
 
 			pthread_mutex_unlock(&source->audio_main_buf_mutex);
 			pthread_mutex_unlock(&source->audio_streaming_buf_mutex);

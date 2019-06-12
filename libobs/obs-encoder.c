@@ -131,7 +131,7 @@ obs_encoder_t *obs_audio_encoder_create(const char *id, const char *name,
 }
 
 static void receive_video(void *param, struct video_data *streaming_frame, struct video_data *recording_frame);
-static void receive_audio(void *param, size_t mix_idx, struct audio_data *data);
+static void receive_audio(void *param, size_t mix_idx, struct audio_data *streaming_data, struct audio_data *recording_data);
 
 static inline void get_audio_info(const struct obs_encoder *encoder,
 		struct audio_convert_info *info)
@@ -1072,19 +1072,19 @@ static void send_audio_data(struct obs_encoder *encoder)
 }
 
 static const char *receive_audio_name = "receive_audio";
-static void receive_audio(void *param, size_t mix_idx, struct audio_data *data)
+static void receive_audio(void *param, size_t mix_idx, struct audio_data *streaming_data, struct audio_data *recording_data)
 {
 	profile_start(receive_audio_name);
 
 	struct obs_encoder *encoder = param;
-	//struct audio_data  *data;
+	struct audio_data  *data;
 
-	//if (strcmp(encoder->paired_encoder->context.name, "streaming_h264") == 0)
-	//	data = data2;
-	//else if (strcmp(encoder->paired_encoder->context.name, "recording_h264") == 0)
-	//	data = data2;
-	//else
-	//	return;
+	if (strcmp(encoder->paired_encoder->context.name, "streaming_h264") == 0)
+		data = streaming_data;
+	else if (strcmp(encoder->paired_encoder->context.name, "recording_h264") == 0)
+		data = recording_data;
+	else
+		return;
 
 	if (!encoder->first_received) {
 		encoder->first_raw_ts = data->timestamp;

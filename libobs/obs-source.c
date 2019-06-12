@@ -210,11 +210,14 @@ bool obs_source_init(struct obs_source *source)
 	else
 		source->showing_recording = true;
 
+
 	if (strcmp(source->info.id, "color_source") == 0)
 		source->showing_streaming = false;
 	else
 		source->showing_streaming = true;
 
+	if (strcmp(source->info.id, "ffmpeg_source") == 0)
+		source->showing_streaming = true;
 
 	if (is_audio_source(source)) {
 		pthread_mutex_lock(&obs->data.audio_sources_mutex);
@@ -4132,28 +4135,56 @@ static void apply_audio_volume(obs_source_t *source, uint32_t mixers,
 static void custom_audio_render(obs_source_t *source, uint32_t mixers,
 		size_t channels, size_t sample_rate)
 {
-	struct obs_source_audio_mix audio_data;
+	struct obs_source_audio_mix main_audio_data;
+	struct obs_source_audio_mix streaming_audio_data;
+	struct obs_source_audio_mix recording_audio_data;
 	bool success;
 	uint64_t ts;
 
 	for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {
 		for (size_t ch = 0; ch < channels; ch++) {
-			audio_data.output[mix].data[ch] =
+			main_audio_data.output[mix].data[ch] =
 				source->audio_main_output_buf[mix][ch];
+			streaming_audio_data.output[mix].data[ch] =
+				source->audio_streaming_output_buf[mix][ch];
+			recording_audio_data.output[mix].data[ch] =
+				source->audio_recording_output_buf[mix][ch];
 		}
 
 		if ((source->audio_mixers & mixers & (1 << mix)) != 0) {
 			memset(source->audio_main_output_buf[mix][0], 0,
 					sizeof(float) * AUDIO_OUTPUT_FRAMES *
 					channels);
+			memset(source->audio_streaming_output_buf[mix][0], 0,
+					sizeof(float) * AUDIO_OUTPUT_FRAMES *
+					channels);
+			memset(source->audio_recording_output_buf[mix][0], 0,
+					sizeof(float) * AUDIO_OUTPUT_FRAMES *
+					channels);
 		}
 	}
 
 	success = source->info.audio_render(source->context.data, &ts,
-			&audio_data, mixers, channels, sample_rate);
+			&main_audio_data, mixers, channels, sample_rate);
+	success = source->info.audio_render(source->context.data, &ts,
+			&streaming_audio_data, mixers, channels, sample_rate);
+	success = source->info.audio_render(source->context.data, &ts,
+			&recording_audio_data, mixers, channels, sample_rate);
 	source->audio_ts = success ? ts : 0;
 	source->audio_pending = !success;
 
+	//for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {
+	//	for (size_t ch = 0; ch < channels; ch++) {
+	//		if (source->showing_streaming)
+	//			memcpy(source->audio_streaming_output_buf[mix][ch],
+	//				source->audio_main_output_buf[mix][ch],
+	//				TOTAL_AUDIO_SIZE);
+	//		if (source->showing_recording)
+	//			memcpy(source->audio_recording_output_buf[mix][ch],
+	//				source->audio_main_output_buf[mix][ch],
+	//				TOTAL_AUDIO_SIZE);
+	//	}
+	//}
 	if (!success || !source->audio_ts || !mixers)
 		return;
 
@@ -4165,6 +4196,14 @@ static void custom_audio_render(obs_source_t *source, uint32_t mixers,
 
 		if ((source->audio_mixers & mix_bit) == 0) {
 			memset(source->audio_main_output_buf[mix][0], 0,
+					sizeof(float) * AUDIO_OUTPUT_FRAMES *
+					channels);
+			
+			memset(source->audio_streaming_output_buf[mix][0], 0,
+					sizeof(float) * AUDIO_OUTPUT_FRAMES *
+					channels);
+			
+			memset(source->audio_recording_output_buf[mix][0], 0,
 					sizeof(float) * AUDIO_OUTPUT_FRAMES *
 					channels);
 		}
