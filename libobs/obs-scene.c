@@ -633,20 +633,20 @@ static void scene_video_render(void *data, gs_effect_t *effect)
 
 	item = scene->first_item;
 	while (item) {
-		switch (obs_get_rendering_mode()) {
-		case OBS_MAIN_RENDERING:
+		switch (obs_get_video_rendering_mode()) {
+		case OBS_MAIN_VIDEO_RENDERING:
 		{
 			if (item->user_visible)
 				render_item(item);
 			break;
 		}
-		case OBS_STREAMING_RENDERING:
+		case OBS_STREAMING_VIDEO_RENDERING:
 		{
 			if (item->user_visible && item->source->showing_streaming)
 				render_item(item);
 			break;
 		}
-		case OBS_RECORDING_RENDERING:
+		case OBS_RECORDING_VIDEO_RENDERING:
 		{
 			if (item->user_visible && item->source->showing_recording)
 				render_item(item);
@@ -1048,6 +1048,15 @@ static inline void mix_audio(float *p_out, float *p_in,
 		*(out++) += *(in++);
 }
 
+static inline void render_item_audio(struct obs_scene_item *item, uint64_t *timestamp)
+{
+	uint64_t source_ts =
+		obs_source_get_audio_timestamp(item->source);
+
+	if (source_ts && (!*timestamp || source_ts < *timestamp))
+		*timestamp = source_ts;
+}
+
 static bool scene_audio_render(void *data, uint64_t *ts_out,
 		struct obs_source_audio_mix *audio_output, uint32_t mixers,
 		size_t channels, size_t sample_rate)
@@ -1062,12 +1071,28 @@ static bool scene_audio_render(void *data, uint64_t *ts_out,
 
 	item = scene->first_item;
 	while (item) {
-		if (!obs_source_audio_pending(item->source) && item->visible && item->source->showing_streaming) {
-			uint64_t source_ts =
-				obs_source_get_audio_timestamp(item->source);
-
-			if (source_ts && (!timestamp || source_ts < timestamp))
-				timestamp = source_ts;
+		switch (obs_get_audio_rendering_mode()) {
+		case OBS_MAIN_AUDIO_RENDERING:
+		{
+			if (!obs_source_audio_pending(item->source) && item->visible) {
+				render_item_audio(item, &timestamp);
+			}
+			break;
+		}
+		case OBS_STREAMING_AUDIO_RENDERING:
+		{
+			if (!obs_source_audio_pending(item->source) && item->visible && item->source->showing_streaming) {
+				render_item_audio(item, &timestamp);
+			}
+			break;
+		}
+		case OBS_RECORDING_AUDIO_RENDERING:
+		{
+			if (!obs_source_audio_pending(item->source) && item->visible && item->source->showing_recording) {
+				render_item_audio(item, &timestamp);
+			}
+			break;
+		}
 		}
 
 		item = item->next;
@@ -1110,7 +1135,10 @@ static bool scene_audio_render(void *data, uint64_t *ts_out,
 				source_ts - timestamp);
 		count = AUDIO_OUTPUT_FRAMES - pos;
 
-		if (!apply_buf && !item->visible) {
+		if (!apply_buf &&
+			((obs_get_audio_rendering_mode() == OBS_MAIN_AUDIO_RENDERING && !item->visible) ||
+				(obs_get_audio_rendering_mode() == OBS_STREAMING_AUDIO_RENDERING && !item->visible && !item->source->showing_streaming) ||
+				(obs_get_audio_rendering_mode() == OBS_RECORDING_AUDIO_RENDERING && !item->visible && !item->source->showing_recording))) {
 			item = item->next;
 			continue;
 		}

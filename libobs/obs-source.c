@@ -217,7 +217,7 @@ bool obs_source_init(struct obs_source *source)
 		source->showing_streaming = true;
 
 	if (strcmp(source->info.id, "ffmpeg_source") == 0)
-		source->showing_streaming = true;
+		source->showing_streaming = false;
 
 	if (is_audio_source(source)) {
 		pthread_mutex_lock(&obs->data.audio_sources_mutex);
@@ -4164,12 +4164,17 @@ static void custom_audio_render(obs_source_t *source, uint32_t mixers,
 		}
 	}
 
-	success = source->info.audio_render(source->context.data, &ts,
-			&main_audio_data, mixers, channels, sample_rate);
-	success = source->info.audio_render(source->context.data, &ts,
-			&streaming_audio_data, mixers, channels, sample_rate);
-	success = source->info.audio_render(source->context.data, &ts,
-			&recording_audio_data, mixers, channels, sample_rate);
+	//obs_set_audio_rendering_mode(OBS_MAIN_AUDIO_RENDERING);
+	//success = source->info.audio_render(source->context.data, &ts,
+	//		&main_audio_data, mixers, channels, sample_rate);
+
+	//obs_set_audio_rendering_mode(OBS_STREAMING_AUDIO_RENDERING);
+	//success = source->info.audio_render(source->context.data, &ts,
+	//		&streaming_audio_data, mixers, channels, sample_rate);
+
+	//obs_set_audio_rendering_mode(OBS_RECORDING_AUDIO_RENDERING);
+	//success = source->info.audio_render(source->context.data, &ts,
+	//		&recording_audio_data, mixers, channels, sample_rate);
 	source->audio_ts = success ? ts : 0;
 	source->audio_pending = !success;
 

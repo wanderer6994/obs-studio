@@ -852,7 +852,8 @@ static bool obs_init(const char *locale, const char *module_config_path,
 	obs_register_source(&scene_info);
 	obs_register_source(&group_info);
 	add_default_module_paths();
-	obs->rendering_mode = OBS_MAIN_RENDERING;
+	obs->video_rendering_mode = OBS_MAIN_VIDEO_RENDERING;
+	obs->audio_rendering_mode = OBS_MAIN_AUDIO_RENDERING;
 	return true;
 }
 
@@ -1652,10 +1653,10 @@ void obs_render_main_texture(void)
 		? NUM_TEXTURES - 1
 		: video->cur_texture - 1;
 
-	if (!video->textures[OBS_MAIN_RENDERING].textures_rendered[last_tex])
+	if (!video->textures[OBS_MAIN_VIDEO_RENDERING].textures_rendered[last_tex])
 		return;
 
-	tex = video->textures[OBS_MAIN_RENDERING].render_textures[last_tex];
+	tex = video->textures[OBS_MAIN_VIDEO_RENDERING].render_textures[last_tex];
 	effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
 	param = gs_effect_get_param_by_name(effect, "image");
 	gs_effect_set_texture(param, tex);
@@ -1664,19 +1665,34 @@ void obs_render_main_texture(void)
 		gs_draw_sprite(tex, 0, 0, 0);
 }
 
-void obs_set_rendering_mode(enum obs_rendering_mode mode)
+void obs_set_video_rendering_mode(enum obs_video_rendering_mode mode)
 {
 	if (!obs) return;
 
-	obs->rendering_mode = mode;
+	obs->video_rendering_mode = mode;
 }
 
-enum obs_rendering_mode obs_get_rendering_mode(void)
+enum obs_video_rendering_mode obs_get_video_rendering_mode(void)
 {
 	if (!obs)
-		return OBS_MAIN_RENDERING;
+		return OBS_MAIN_VIDEO_RENDERING;
 	else
-		return obs->rendering_mode;
+		return obs->video_rendering_mode;
+}
+
+void obs_set_audio_rendering_mode(enum obs_audio_rendering_mode mode)
+{
+	if (!obs) return;
+
+	obs->audio_rendering_mode = mode;
+}
+
+enum obs_audio_rendering_mode obs_get_audio_rendering_mode(void)
+{
+	if (!obs)
+		return OBS_MAIN_AUDIO_RENDERING;
+	else
+		return obs->audio_rendering_mode;
 }
 
 gs_texture_t *obs_get_main_texture(void)
@@ -1690,10 +1706,10 @@ gs_texture_t *obs_get_main_texture(void)
 		? NUM_TEXTURES - 1
 		: video->cur_texture - 1;
 
-	if (!video->textures[OBS_MAIN_RENDERING].textures_rendered[last_tex])
+	if (!video->textures[OBS_MAIN_VIDEO_RENDERING].textures_rendered[last_tex])
 		return NULL;
 
-	return video->textures[OBS_MAIN_RENDERING].render_textures[last_tex];
+	return video->textures[OBS_MAIN_VIDEO_RENDERING].render_textures[last_tex];
 }
 
 void obs_set_master_volume(float volume)

@@ -135,10 +135,16 @@ enum obs_bounds_type {
 	OBS_BOUNDS_MAX_ONLY,        /**< no scaling, maximum size only */
 };
 
-enum obs_rendering_mode {
-	OBS_MAIN_RENDERING,
-	OBS_STREAMING_RENDERING,
-	OBS_RECORDING_RENDERING,
+enum obs_audio_rendering_mode {
+	OBS_MAIN_AUDIO_RENDERING,
+	OBS_STREAMING_AUDIO_RENDERING,
+	OBS_RECORDING_AUDIO_RENDERING,
+};
+
+enum obs_video_rendering_mode {
+	OBS_MAIN_VIDEO_RENDERING,
+	OBS_STREAMING_VIDEO_RENDERING,
+	OBS_RECORDING_VIDEO_RENDERING,
 };
 
 struct obs_transform_info {
@@ -637,11 +643,17 @@ EXPORT void obs_render_main_view(void);
 /** Renders the last main output texture */
 EXPORT void obs_render_main_texture(void);
 
-/** Sets rendering mode*/
-EXPORT void obs_set_rendering_mode(enum obs_rendering_mode mode);
+/** Sets video rendering mode*/
+EXPORT void obs_set_video_rendering_mode(enum obs_video_rendering_mode mode);
 
-/** Gets current rendering mode */
-EXPORT enum obs_rendering_mode obs_get_rendering_mode(void);
+/** Gets current video rendering mode */
+EXPORT enum obs_video_rendering_mode obs_get_video_rendering_mode(void);
+
+/** Sets audio rendering mode*/
+EXPORT void obs_set_audio_rendering_mode(enum obs_audio_rendering_mode mode);
+
+/** Gets current audio rendering mode */
+EXPORT enum obs_audio_rendering_mode obs_get_audio_rendering_mode(void);
 
 /** Returns the last main output texture.  This can return NULL if the texture
  * is unavailable. */

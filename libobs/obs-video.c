@@ -127,7 +127,7 @@ static inline void render_main_texture(struct obs_core_video *video,
 	gs_set_render_target(video->textures[mode].render_textures[cur_texture], NULL);
 	gs_clear(GS_CLEAR_COLOR, &clear_color, 1.0f, 0);
 
-	obs_set_rendering_mode(mode);
+	obs_set_video_rendering_mode(mode);
 
 	set_render_size(video->base_width, video->base_height);
 
@@ -498,13 +498,13 @@ static inline void render_video(struct obs_core_video *video,
 	gs_enable_depth_test(false);
 	gs_set_cull_mode(GS_NEITHER);
 
-	render_main_texture(video, cur_texture, OBS_MAIN_RENDERING);
-	render_main_texture(video, cur_texture, OBS_STREAMING_RENDERING);
-	render_main_texture(video, cur_texture, OBS_RECORDING_RENDERING);
+	render_main_texture(video, cur_texture, OBS_MAIN_VIDEO_RENDERING);
+	render_main_texture(video, cur_texture, OBS_STREAMING_VIDEO_RENDERING);
+	render_main_texture(video, cur_texture, OBS_RECORDING_VIDEO_RENDERING);
 
 	if (raw_active || gpu_active) {
-		render_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_RENDERING);
-		render_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_RENDERING);
+		render_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
+		render_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
 
 #ifdef _WIN32
 		if (gpu_active) {
@@ -517,28 +517,28 @@ static inline void render_video(struct obs_core_video *video,
 		if (video->gpu_conversion) {
 			if (video->using_nv12_tex) {
 				render_convert_texture_nv12(video,
-					cur_texture, prev_texture, OBS_STREAMING_RENDERING);
+					cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
 				render_convert_texture_nv12(video,
-					cur_texture, prev_texture, OBS_RECORDING_RENDERING);
+					cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
 			}
 			else {
 				render_convert_texture(video,
-					cur_texture, prev_texture, OBS_STREAMING_RENDERING);
+					cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
 				render_convert_texture(video,
-					cur_texture, prev_texture, OBS_RECORDING_RENDERING);
+					cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
 			}
 		}
 
 #ifdef _WIN32
 		if (gpu_active) {
 			gs_flush();
-			output_gpu_encoders(video, raw_active, prev_texture, OBS_STREAMING_RENDERING);
-			output_gpu_encoders(video, raw_active, prev_texture, OBS_RECORDING_RENDERING);
+			output_gpu_encoders(video, raw_active, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
+			output_gpu_encoders(video, raw_active, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
 		}
 #endif
 		if (raw_active) {
-			stage_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_RENDERING);
-			stage_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_RENDERING);
+			stage_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
+			stage_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
 		}
 	}
 
@@ -723,9 +723,9 @@ static inline void output_video_data(struct obs_core_video *video,
 	info = video_output_get_info(video->video);
 
 	locked = video_output_lock_frame(video->video, &streaming_output_frame, count,
-		streaming_input_frame->timestamp, OBS_STREAMING_RENDERING);
+		streaming_input_frame->timestamp, OBS_STREAMING_VIDEO_RENDERING);
 	locked = video_output_lock_frame(video->video, &recording_output_frame, count,
-		recording_input_frame->timestamp, OBS_RECORDING_RENDERING);
+		recording_input_frame->timestamp, OBS_RECORDING_VIDEO_RENDERING);
 	if (locked) {
 		if (video->gpu_conversion) {
 			set_gpu_converted_data(video, &streaming_output_frame,
@@ -803,8 +803,8 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 
 	if (raw_active) {
 		profile_start(output_frame_download_frame_name);
-		frame_ready = download_frame(video, prev_texture, &streaming_frame, OBS_STREAMING_RENDERING);
-		frame_ready = download_frame(video, prev_texture, &recording_frame, OBS_RECORDING_RENDERING);
+		frame_ready = download_frame(video, prev_texture, &streaming_frame, OBS_STREAMING_VIDEO_RENDERING);
+		frame_ready = download_frame(video, prev_texture, &recording_frame, OBS_RECORDING_VIDEO_RENDERING);
 		profile_end(output_frame_download_frame_name);
 	}
 

@@ -467,9 +467,9 @@ bool video_output_lock_frame(video_t *video, struct video_frame *frame,
 
 	if (!video) return false;
 
-	if (mode == OBS_STREAMING_RENDERING)
+	if (mode == OBS_STREAMING_VIDEO_RENDERING)
 		g_cfi = &video->streaming_cache;
-	else if (mode == OBS_RECORDING_RENDERING)
+	else if (mode == OBS_RECORDING_VIDEO_RENDERING)
 		g_cfi = &video->recording_cache;
 	else
 		return false;
