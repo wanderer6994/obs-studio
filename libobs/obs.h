@@ -728,10 +728,10 @@ EXPORT void obs_remove_main_render_callback(
 
 EXPORT void obs_add_raw_video_callback(
 		const struct video_scale_info *conversion,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param);
 EXPORT void obs_remove_raw_video_callback(
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param);
 
 EXPORT uint64_t obs_get_video_frame_time(void);

@@ -2341,7 +2341,7 @@ void stop_raw_video(video_t *v,
 
 void obs_add_raw_video_callback(
 		const struct video_scale_info *conversion,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param)
 {
 	struct obs_core_video *video = &obs->video;
@@ -2351,7 +2351,7 @@ void obs_add_raw_video_callback(
 }
 
 void obs_remove_raw_video_callback(
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param)
 {
 	struct obs_core_video *video = &obs->video;
