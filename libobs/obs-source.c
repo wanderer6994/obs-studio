@@ -4168,15 +4168,17 @@ static void custom_audio_render(obs_source_t *source, uint32_t mixers,
 	success = source->info.audio_render(source->context.data, &ts,
 			&main_audio_data, mixers, channels, sample_rate);
 
+	source->audio_ts = success ? ts : 0;
+	source->audio_pending = !success;
+
 	obs_set_audio_rendering_mode(OBS_STREAMING_AUDIO_RENDERING);
-	success = source->info.audio_render(source->context.data, &ts,
+	source->info.audio_render(source->context.data, &ts,
 			&streaming_audio_data, mixers, channels, sample_rate);
 
 	obs_set_audio_rendering_mode(OBS_RECORDING_AUDIO_RENDERING);
-	success = source->info.audio_render(source->context.data, &ts,
+	source->info.audio_render(source->context.data, &ts,
 			&recording_audio_data, mixers, channels, sample_rate);
-	source->audio_ts = success ? ts : 0;
-	source->audio_pending = !success;
+
 
 	if (!success || !source->audio_ts || !mixers)
 		return;
@@ -4344,16 +4346,28 @@ void obs_source_get_audio_mix(const obs_source_t *source,
 
 	for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {
 		for (size_t ch = 0; ch < MAX_AUDIO_CHANNELS; ch++) {
-			audio->output[mix].data[ch] =
-				source->audio_main_output_buf[mix][ch];
-
-			//if (source->showing_streaming)
-			//	audio->output[mix].data[ch] =
-			//	source->audio_streaming_output_buf[mix][ch];
-
-			//if (source->showing_recording)
-			//	audio->output[mix].data[ch] =
-			//	source->audio_recording_output_buf[mix][ch];
+			switch (obs_get_audio_rendering_mode()) {
+			case OBS_MAIN_AUDIO_RENDERING:
+			{
+				audio->output[mix].data[ch] =
+					source->audio_main_output_buf[mix][ch];
+				break;
+			}
+			case OBS_STREAMING_AUDIO_RENDERING:
+			{
+				if (source->showing_streaming)
+					audio->output[mix].data[ch] =
+						source->audio_streaming_output_buf[mix][ch];
+				break;
+			}
+			case OBS_RECORDING_AUDIO_RENDERING:
+			{
+				if (source->showing_recording)
+					audio->output[mix].data[ch] =
+						source->audio_recording_output_buf[mix][ch];
+				break;
+			}
+			}
 		}
 	}
 }

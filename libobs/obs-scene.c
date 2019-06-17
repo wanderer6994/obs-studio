@@ -935,7 +935,25 @@ static uint32_t scene_getheight(void *data)
 static void apply_scene_item_audio_actions(struct obs_scene_item *item,
 		float **p_buf, uint64_t ts, size_t sample_rate)
 {
-	bool cur_visible = item->visible;
+	bool cur_visible;
+	switch (obs_get_audio_rendering_mode()) {
+	case OBS_MAIN_AUDIO_RENDERING:
+	{
+		cur_visible = item->visible;
+		break;
+	}
+	case OBS_STREAMING_AUDIO_RENDERING:
+	{
+		cur_visible = item->visible && item->source->showing_streaming;
+		break;
+	}
+	case OBS_RECORDING_AUDIO_RENDERING:
+	{
+		cur_visible = item->visible && item->source->showing_recording;
+		break;
+	}
+	}
+
 	uint64_t frame_num = 0;
 	size_t deref_count = 0;
 	float *buf = NULL;
@@ -973,7 +991,23 @@ static void apply_scene_item_audio_actions(struct obs_scene_item *item,
 				buf[frame_num] = cur_visible ? 1.0f : 0.0f;
 		}
 
-		cur_visible = item->visible;
+		switch (obs_get_audio_rendering_mode()) {
+		case OBS_MAIN_AUDIO_RENDERING:
+		{
+			cur_visible = item->visible;
+			break;
+		}
+		case OBS_STREAMING_AUDIO_RENDERING:
+		{
+			cur_visible = item->visible && item->source->showing_streaming;
+			break;
+		}
+		case OBS_RECORDING_AUDIO_RENDERING:
+		{
+			cur_visible = item->visible && item->source->showing_recording;
+			break;
+		}
+		}
 	}
 
 	if (buf) {
