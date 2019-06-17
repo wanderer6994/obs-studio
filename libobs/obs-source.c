@@ -4164,32 +4164,20 @@ static void custom_audio_render(obs_source_t *source, uint32_t mixers,
 		}
 	}
 
-	//obs_set_audio_rendering_mode(OBS_MAIN_AUDIO_RENDERING);
-	//success = source->info.audio_render(source->context.data, &ts,
-	//		&main_audio_data, mixers, channels, sample_rate);
+	obs_set_audio_rendering_mode(OBS_MAIN_AUDIO_RENDERING);
+	success = source->info.audio_render(source->context.data, &ts,
+			&main_audio_data, mixers, channels, sample_rate);
 
-	//obs_set_audio_rendering_mode(OBS_STREAMING_AUDIO_RENDERING);
-	//success = source->info.audio_render(source->context.data, &ts,
-	//		&streaming_audio_data, mixers, channels, sample_rate);
+	obs_set_audio_rendering_mode(OBS_STREAMING_AUDIO_RENDERING);
+	success = source->info.audio_render(source->context.data, &ts,
+			&streaming_audio_data, mixers, channels, sample_rate);
 
-	//obs_set_audio_rendering_mode(OBS_RECORDING_AUDIO_RENDERING);
-	//success = source->info.audio_render(source->context.data, &ts,
-	//		&recording_audio_data, mixers, channels, sample_rate);
+	obs_set_audio_rendering_mode(OBS_RECORDING_AUDIO_RENDERING);
+	success = source->info.audio_render(source->context.data, &ts,
+			&recording_audio_data, mixers, channels, sample_rate);
 	source->audio_ts = success ? ts : 0;
 	source->audio_pending = !success;
 
-	//for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {
-	//	for (size_t ch = 0; ch < channels; ch++) {
-	//		if (source->showing_streaming)
-	//			memcpy(source->audio_streaming_output_buf[mix][ch],
-	//				source->audio_main_output_buf[mix][ch],
-	//				TOTAL_AUDIO_SIZE);
-	//		if (source->showing_recording)
-	//			memcpy(source->audio_recording_output_buf[mix][ch],
-	//				source->audio_main_output_buf[mix][ch],
-	//				TOTAL_AUDIO_SIZE);
-	//	}
-	//}
 	if (!success || !source->audio_ts || !mixers)
 		return;
 
