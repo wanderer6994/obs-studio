@@ -885,6 +885,10 @@ void send_off_encoder_packet(obs_encoder_t *encoder, bool success,
 			packet_dts_usec(streaming_pkt) - encoder->offset_usec;
 		streaming_pkt->sys_dts_usec = streaming_pkt->dts_usec;
 
+		recording_pkt->dts_usec = encoder->start_ts / 1000 +
+			packet_dts_usec(recording_pkt) - encoder->offset_usec;
+		recording_pkt->sys_dts_usec = recording_pkt->dts_usec;
+
 		pthread_mutex_lock(&encoder->callbacks_mutex);
 
 		for (size_t i = encoder->callbacks.num; i > 0; i--) {
@@ -919,10 +923,10 @@ void do_encode(struct obs_encoder *encoder,
 	profile_start(encoder->profile_encoder_encode_name);
 	success = encoder->info.encode(encoder->context.data, streaming_frame, &streaming_pkt,
 			&received);
-	//success = encoder->info.encode(encoder->context.data, recording_frame, &recording_pkt,
-	//		&received);
+	success = encoder->info.encode(encoder->context.data, recording_frame, &recording_pkt,
+			&received);
 	profile_end(encoder->profile_encoder_encode_name);
-	send_off_encoder_packet(encoder, success, received, &streaming_pkt, &streaming_pkt);
+	send_off_encoder_packet(encoder, success, received, &streaming_pkt, &recording_pkt);
 
 	profile_end(do_encode_name);
 }
