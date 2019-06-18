@@ -1433,10 +1433,17 @@ static void interleave_packets(void *data, struct encoder_packet *streaming_pack
 
 	struct encoder_packet *packet;
 
-	if (strcmp(output->info.id, "rtmp_output") == 0)
+	if (strcmp(output->info.id, "rtmp_output") == 0 || !recording_packet->data) {
 		packet = streaming_packet;
-	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0)
+		if (!recording_packet->data)
+			blog(LOG_INFO, "Using streaming packet, recording is NULL, packet %d", packet->type);
+		else
+			blog(LOG_INFO, "Using streaming packet, packet %d", packet->type);
+	}
+	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0) {
 		packet = recording_packet;
+		blog(LOG_INFO, "Using recording packet, packet %d", packet->type);
+	}
 	else
 		packet = streaming_packet;
 

@@ -206,7 +206,7 @@ bool obs_source_init(struct obs_source *source)
 	source->showing_streaming = true;
 
 	if (strcmp(source->info.id, "ffmpeg_source") == 0)
-		source->showing_recording = true;
+		source->showing_recording = false;
 	else
 		source->showing_recording = true;
 
