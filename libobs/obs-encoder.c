@@ -228,9 +228,13 @@ static void remove_connection(struct obs_encoder *encoder)
 static inline void free_audio_buffers(struct obs_encoder *encoder)
 {
 	for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-		circlebuf_free(&encoder->audio_input_buffer[i]);
-		bfree(encoder->audio_output_buffer[i]);
-		encoder->audio_output_buffer[i] = NULL;
+		circlebuf_free(&encoder->audio_streaming_input_buffer[i]);
+		bfree(encoder->audio_streaming_output_buffer[i]);
+		encoder->audio_streaming_output_buffer[i] = NULL;
+
+		circlebuf_free(&encoder->audio_recording_input_buffer[i]);
+		bfree(encoder->audio_recording_output_buffer[i]);
+		encoder->audio_recording_output_buffer[i] = NULL;
 	}
 }
 
@@ -406,7 +410,11 @@ static inline void reset_audio_buffers(struct obs_encoder *encoder)
 	free_audio_buffers(encoder);
 
 	for (size_t i = 0; i < encoder->planes; i++)
-		encoder->audio_output_buffer[i] =
+		encoder->audio_streaming_output_buffer[i] =
+			bmalloc(encoder->framesize_bytes);
+
+	for (size_t i = 0; i < encoder->planes; i++)
+		encoder->audio_recording_output_buffer[i] =
 			bmalloc(encoder->framesize_bytes);
 }
 
@@ -789,46 +797,59 @@ static inline bool get_sei(const struct obs_encoder *encoder,
 }
 
 static void send_first_video_packet(struct obs_encoder *encoder,
-		struct encoder_callback *cb, struct encoder_packet *packet)
+		struct encoder_callback *cb, struct encoder_packet *streaming_packet,
+		struct encoder_packet *recording_packet)
 {
-	struct encoder_packet first_packet;
-	DARRAY(uint8_t)       data;
+	struct encoder_packet streaming_first_packet;
+	struct encoder_packet recording_first_packet;
+	DARRAY(uint8_t)       streaming_data;
+	DARRAY(uint8_t)       recording_data;
 	uint8_t               *sei;
 	size_t                size;
 
 	/* always wait for first keyframe */
-	if (!packet->keyframe)
+	if (!streaming_packet->keyframe)
 		return;
 
-	da_init(data);
+	da_init(streaming_data);
+	da_init(recording_data);
 
 	if (!get_sei(encoder, &sei, &size) || !sei || !size) {
-		cb->new_packet(cb->param, packet);
+		cb->new_packet(cb->param, streaming_packet, recording_packet);
 		cb->sent_first_packet = true;
 		return;
 	}
 
-	da_push_back_array(data, sei, size);
-	da_push_back_array(data, packet->data, packet->size);
+	da_push_back_array(streaming_data, sei, size);
+	da_push_back_array(streaming_data, streaming_packet->data, streaming_packet->size);
+	da_push_back_array(recording_data, sei, size);
+	da_push_back_array(recording_data, recording_packet->data, recording_packet->size);
+	
+	streaming_first_packet      = *streaming_packet;
+	streaming_first_packet.data = streaming_data.array;
+	streaming_first_packet.size = streaming_data.num;
 
-	first_packet      = *packet;
-	first_packet.data = data.array;
-	first_packet.size = data.num;
+	
+	recording_first_packet      = *recording_packet;
+	recording_first_packet.data = recording_data.array;
+	recording_first_packet.size = recording_data.num;
 
-	cb->new_packet(cb->param, &first_packet);
+	cb->new_packet(cb->param, &streaming_first_packet, &recording_first_packet);
 	cb->sent_first_packet = true;
 
-	da_free(data);
+	da_free(streaming_data);
+	da_free(recording_data);
 }
 
 static inline void send_packet(struct obs_encoder *encoder,
-		struct encoder_callback *cb, struct encoder_packet *packet)
+		struct encoder_callback *cb, struct encoder_packet *streaming_packet,
+		struct encoder_packet *recording_packet)
 {
 	/* include SEI in first video packet */
 	if (encoder->info.type == OBS_ENCODER_VIDEO && !cb->sent_first_packet)
-		send_first_video_packet(encoder, cb, packet);
+		send_first_video_packet(encoder, cb, streaming_packet, recording_packet);
 	else
-		cb->new_packet(cb->param, packet);
+		cb->new_packet(cb->param, streaming_packet, recording_packet);
 }
 
 void full_stop(struct obs_encoder *encoder)
@@ -842,7 +863,8 @@ void full_stop(struct obs_encoder *encoder)
 }
 
 void send_off_encoder_packet(obs_encoder_t *encoder, bool success,
-		bool received, struct encoder_packet *pkt)
+		bool received, struct encoder_packet *streaming_pkt,
+		struct encoder_packet *recording_pkt)
 {
 	if (!success) {
 		full_stop(encoder);
@@ -853,22 +875,22 @@ void send_off_encoder_packet(obs_encoder_t *encoder, bool success,
 
 	if (received) {
 		if (!encoder->first_received) {
-			encoder->offset_usec = packet_dts_usec(pkt);
+			encoder->offset_usec = packet_dts_usec(streaming_pkt);
 			encoder->first_received = true;
 		}
 
 		/* we use system time here to ensure sync with other encoders,
 		 * you do not want to use relative timestamps here */
-		pkt->dts_usec = encoder->start_ts / 1000 +
-			packet_dts_usec(pkt) - encoder->offset_usec;
-		pkt->sys_dts_usec = pkt->dts_usec;
+		streaming_pkt->dts_usec = encoder->start_ts / 1000 +
+			packet_dts_usec(streaming_pkt) - encoder->offset_usec;
+		streaming_pkt->sys_dts_usec = streaming_pkt->dts_usec;
 
 		pthread_mutex_lock(&encoder->callbacks_mutex);
 
 		for (size_t i = encoder->callbacks.num; i > 0; i--) {
 			struct encoder_callback *cb;
 			cb = encoder->callbacks.array+(i-1);
-			send_packet(encoder, cb, pkt);
+			send_packet(encoder, cb, streaming_pkt, recording_pkt);
 		}
 
 		pthread_mutex_unlock(&encoder->callbacks_mutex);
@@ -876,7 +898,8 @@ void send_off_encoder_packet(obs_encoder_t *encoder, bool success,
 }
 
 static const char *do_encode_name = "do_encode";
-void do_encode(struct obs_encoder *encoder, struct encoder_frame *frame)
+void do_encode(struct obs_encoder *encoder,
+		struct encoder_frame *streaming_frame, struct encoder_frame *recording_frame)
 {
 	profile_start(do_encode_name);
 	if (!encoder->profile_encoder_encode_name)
@@ -884,19 +907,22 @@ void do_encode(struct obs_encoder *encoder, struct encoder_frame *frame)
 			profile_store_name(obs_get_profiler_name_store(),
 					"encode(%s)", encoder->context.name);
 
-	struct encoder_packet pkt = {0};
+	struct encoder_packet streaming_pkt = { 0 };
+	struct encoder_packet recording_pkt = { 0 };
 	bool received = false;
 	bool success;
 
-	pkt.timebase_num = encoder->timebase_num;
-	pkt.timebase_den = encoder->timebase_den;
-	pkt.encoder = encoder;
+	recording_pkt.timebase_num = streaming_pkt.timebase_num = encoder->timebase_num;
+	recording_pkt.timebase_den = streaming_pkt.timebase_den = encoder->timebase_den;
+	recording_pkt.encoder = streaming_pkt.encoder = encoder;
 
 	profile_start(encoder->profile_encoder_encode_name);
-	success = encoder->info.encode(encoder->context.data, frame, &pkt,
+	success = encoder->info.encode(encoder->context.data, streaming_frame, &streaming_pkt,
 			&received);
+	//success = encoder->info.encode(encoder->context.data, recording_frame, &recording_pkt,
+	//		&received);
 	profile_end(encoder->profile_encoder_encode_name);
-	send_off_encoder_packet(encoder, success, received, &pkt);
+	send_off_encoder_packet(encoder, success, received, &streaming_pkt, &streaming_pkt);
 
 	profile_end(do_encode_name);
 }
@@ -908,37 +934,36 @@ static void receive_video(void *param, struct video_data *streaming_frame, struc
 
 	struct obs_encoder    *encoder  = param;
 	struct obs_encoder    *pair     = encoder->paired_encoder;
-	struct encoder_frame  enc_frame;
-	struct video_data     *frame;
-
-	if (strcmp(encoder->context.name, "streaming_h264") == 0)
-		frame = streaming_frame;
-	else if (strcmp(encoder->context.name, "recording_h264") == 0)
-		frame = recording_frame;
-	else
-		return;
+	struct encoder_frame  streaming_enc_frame;
+	struct encoder_frame  recording_enc_frame;
 
 	if (!encoder->first_received && pair) {
 		if (!pair->first_received ||
-		    pair->first_raw_ts > frame->timestamp) {
+		    pair->first_raw_ts > streaming_frame->timestamp) {
 			goto wait_for_audio;
 		}
 	}
 
-	memset(&enc_frame, 0, sizeof(struct encoder_frame));
+	memset(&streaming_enc_frame, 0, sizeof(struct encoder_frame));
+	memset(&recording_enc_frame, 0, sizeof(struct encoder_frame));
 
 	for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-		enc_frame.data[i]     = frame->data[i];
-		enc_frame.linesize[i] = frame->linesize[i];
+		streaming_enc_frame.data[i]     = streaming_frame->data[i];
+		streaming_enc_frame.linesize[i] = streaming_frame->linesize[i];
+
+		recording_enc_frame.data[i]     = recording_frame->data[i];
+		recording_enc_frame.linesize[i] = recording_frame->linesize[i];
 	}
 
 	if (!encoder->start_ts)
-		encoder->start_ts = frame->timestamp;
+		encoder->start_ts = streaming_frame->timestamp;
+	
+	streaming_enc_frame.frames = 1;
+	streaming_enc_frame.pts    = encoder->cur_pts;
+	recording_enc_frame.frames = 1;
+	recording_enc_frame.pts    = encoder->cur_pts;
 
-	enc_frame.frames = 1;
-	enc_frame.pts    = encoder->cur_pts;
-
-	do_encode(encoder, &enc_frame);
+	do_encode(encoder, &streaming_enc_frame, &recording_enc_frame);
 
 	encoder->cur_pts += encoder->timebase_num;
 
@@ -949,19 +974,28 @@ wait_for_audio:
 static void clear_audio(struct obs_encoder *encoder)
 {
 	for (size_t i = 0; i < encoder->planes; i++)
-		circlebuf_free(&encoder->audio_input_buffer[i]);
+		circlebuf_free(&encoder->audio_streaming_input_buffer[i]);
+
+	for (size_t i = 0; i < encoder->planes; i++)
+		circlebuf_free(&encoder->audio_recording_input_buffer[i]);
 }
 
 static inline void push_back_audio(struct obs_encoder *encoder,
-		struct audio_data *data, size_t size, size_t offset_size)
+		struct audio_data *streaming_data, struct audio_data *recording_data,
+		size_t size, size_t offset_size)
 {
 	size -= offset_size;
 
 	/* push in to the circular buffer */
-	if (size)
+	if (size) {
 		for (size_t i = 0; i < encoder->planes; i++)
-			circlebuf_push_back(&encoder->audio_input_buffer[i],
-					data->data[i] + offset_size, size);
+			circlebuf_push_back(&encoder->audio_streaming_input_buffer[i],
+				streaming_data->data[i] + offset_size, size);
+
+		for (size_t i = 0; i < encoder->planes; i++)
+			circlebuf_push_back(&encoder->audio_recording_input_buffer[i],
+				recording_data->data[i] + offset_size, size);
+	}
 }
 
 static inline size_t calc_offset_size(struct obs_encoder *encoder,
@@ -975,13 +1009,18 @@ static inline size_t calc_offset_size(struct obs_encoder *encoder,
 
 static void start_from_buffer(struct obs_encoder *encoder, uint64_t v_start_ts)
 {
-	size_t size = encoder->audio_input_buffer[0].size;
-	struct audio_data audio = {0};
+	size_t size = encoder->audio_streaming_input_buffer[0].size;
+	struct audio_data streaming_audio = { 0 };
+	struct audio_data recording_audio = { 0 };
 	size_t offset_size = 0;
 
 	for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-		audio.data[i] = encoder->audio_input_buffer[i].data;
-		memset(&encoder->audio_input_buffer[i], 0,
+		streaming_audio.data[i] = encoder->audio_streaming_input_buffer[i].data;
+		memset(&encoder->audio_streaming_input_buffer[i], 0,
+				sizeof(struct circlebuf));
+
+		recording_audio.data[i] = encoder->audio_recording_input_buffer[i].data;
+		memset(&encoder->audio_recording_input_buffer[i], 0,
 				sizeof(struct circlebuf));
 	}
 
@@ -989,23 +1028,25 @@ static void start_from_buffer(struct obs_encoder *encoder, uint64_t v_start_ts)
 		offset_size = calc_offset_size(encoder, v_start_ts,
 				encoder->first_raw_ts);
 
-	push_back_audio(encoder, &audio, size, offset_size);
+	push_back_audio(encoder, &streaming_audio, &recording_audio, size, offset_size);
 
-	for (size_t i = 0; i < MAX_AV_PLANES; i++)
-		bfree(audio.data[i]);
+	for (size_t i = 0; i < MAX_AV_PLANES; i++) {
+		bfree(streaming_audio.data[i]);
+		bfree(recording_audio.data[i]);
+	}
 }
 
 static const char *buffer_audio_name = "buffer_audio";
-static bool buffer_audio(struct obs_encoder *encoder, struct audio_data *data)
+static bool buffer_audio(struct obs_encoder *encoder, struct audio_data *streaming_data, struct audio_data *recording_data)
 {
 	profile_start(buffer_audio_name);
 
-	size_t size = data->frames * encoder->blocksize;
+	size_t size = streaming_data->frames * encoder->blocksize;
 	size_t offset_size = 0;
 	bool success = true;
 
 	if (!encoder->start_ts && encoder->paired_encoder) {
-		uint64_t end_ts     = data->timestamp;
+		uint64_t end_ts     = streaming_data->timestamp;
 		uint64_t v_start_ts = encoder->paired_encoder->start_ts;
 
 		/* no video yet, so don't start audio */
@@ -1016,7 +1057,7 @@ static bool buffer_audio(struct obs_encoder *encoder, struct audio_data *data)
 
 		/* audio starting point still not synced with video starting
 		 * point, so don't start audio */
-		end_ts += (uint64_t)data->frames * 1000000000ULL /
+		end_ts += (uint64_t)streaming_data->frames * 1000000000ULL /
 			(uint64_t)encoder->samplerate;
 		if (end_ts <= v_start_ts) {
 			success = false;
@@ -1024,25 +1065,25 @@ static bool buffer_audio(struct obs_encoder *encoder, struct audio_data *data)
 		}
 
 		/* ready to start audio, truncate if necessary */
-		if (data->timestamp < v_start_ts)
+		if (streaming_data->timestamp < v_start_ts)
 			offset_size = calc_offset_size(encoder, v_start_ts,
-					data->timestamp);
-		if (data->timestamp <= v_start_ts)
+					streaming_data->timestamp);
+		if (streaming_data->timestamp <= v_start_ts)
 			clear_audio(encoder);
 
 		encoder->start_ts = v_start_ts;
 
 		/* use currently buffered audio instead */
-		if (v_start_ts < data->timestamp) {
+		if (v_start_ts < streaming_data->timestamp) {
 			start_from_buffer(encoder, v_start_ts);
 		}
 
 	} else if (!encoder->start_ts && !encoder->paired_encoder) {
-		encoder->start_ts = data->timestamp;
+		encoder->start_ts = streaming_data->timestamp;
 	}
 
 fail:
-	push_back_audio(encoder, data, size, offset_size);
+	push_back_audio(encoder, streaming_data, recording_data, size, offset_size);
 
 	profile_end(buffer_audio_name);
 	return success;
@@ -1050,23 +1091,35 @@ fail:
 
 static void send_audio_data(struct obs_encoder *encoder)
 {
-	struct encoder_frame  enc_frame;
+	struct encoder_frame streaming_enc_frame;
+	struct encoder_frame recording_enc_frame;
 
-	memset(&enc_frame, 0, sizeof(struct encoder_frame));
+	memset(&streaming_enc_frame, 0, sizeof(struct encoder_frame));
+	memset(&recording_enc_frame, 0, sizeof(struct encoder_frame));
 
 	for (size_t i = 0; i < encoder->planes; i++) {
-		circlebuf_pop_front(&encoder->audio_input_buffer[i],
-				encoder->audio_output_buffer[i],
+		circlebuf_pop_front(&encoder->audio_streaming_input_buffer[i],
+				encoder->audio_streaming_output_buffer[i],
 				encoder->framesize_bytes);
 
-		enc_frame.data[i]     = encoder->audio_output_buffer[i];
-		enc_frame.linesize[i] = (uint32_t)encoder->framesize_bytes;
+		circlebuf_pop_front(&encoder->audio_recording_input_buffer[i],
+			encoder->audio_recording_output_buffer[i],
+			encoder->framesize_bytes);
+
+		streaming_enc_frame.data[i] = encoder->audio_streaming_output_buffer[i];
+		streaming_enc_frame.linesize[i] = (uint32_t)encoder->framesize_bytes;
+
+		recording_enc_frame.data[i] = encoder->audio_recording_output_buffer[i];
+		recording_enc_frame.linesize[i] = (uint32_t)encoder->framesize_bytes;
 	}
 
-	enc_frame.frames = (uint32_t)encoder->framesize;
-	enc_frame.pts    = encoder->cur_pts;
+	streaming_enc_frame.frames = (uint32_t)encoder->framesize;
+	streaming_enc_frame.pts = encoder->cur_pts;
 
-	do_encode(encoder, &enc_frame);
+	recording_enc_frame.frames = (uint32_t)encoder->framesize;
+	recording_enc_frame.pts = encoder->cur_pts;
+
+	do_encode(encoder, &streaming_enc_frame, &recording_enc_frame);
 
 	encoder->cur_pts += encoder->framesize;
 }
@@ -1077,25 +1130,18 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *stream
 	profile_start(receive_audio_name);
 
 	struct obs_encoder *encoder = param;
-	struct audio_data  *data;
-
-	if (strcmp(encoder->paired_encoder->context.name, "streaming_h264") == 0)
-		data = streaming_data;
-	else if (strcmp(encoder->paired_encoder->context.name, "recording_h264") == 0)
-		data = recording_data;
-	else
-		return;
 
 	if (!encoder->first_received) {
-		encoder->first_raw_ts = data->timestamp;
+		encoder->first_raw_ts = streaming_data->timestamp;
 		encoder->first_received = true;
 		clear_audio(encoder);
 	}
 
-	if (!buffer_audio(encoder, data))
+	if (!buffer_audio(encoder, streaming_data, recording_data))
 		goto end;
 
-	while (encoder->audio_input_buffer[0].size >= encoder->framesize_bytes)
+	while (encoder->audio_streaming_input_buffer[0].size >= encoder->framesize_bytes ||
+			encoder->audio_recording_input_buffer[0].size >= encoder->framesize_bytes)
 		send_audio_data(encoder);
 
 	UNUSED_PARAMETER(mix_idx);

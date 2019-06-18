@@ -1421,7 +1421,8 @@ static void discard_unused_audio_packets(struct obs_output *output,
 		discard_to_idx(output, idx);
 }
 
-static void interleave_packets(void *data, struct encoder_packet *packet)
+static void interleave_packets(void *data, struct encoder_packet *streaming_packet,
+		struct encoder_packet *recording_packet)
 {
 	struct obs_output     *output = data;
 	struct encoder_packet out;
@@ -1429,6 +1430,15 @@ static void interleave_packets(void *data, struct encoder_packet *packet)
 
 	if (!active(output))
 		return;
+
+	struct encoder_packet *packet;
+
+	if (strcmp(output->info.id, "rtmp_output") == 0)
+		packet = streaming_packet;
+	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0)
+		packet = recording_packet;
+	else
+		packet = streaming_packet;
 
 	if (packet->type == OBS_ENCODER_AUDIO)
 		packet->track_idx = get_track_index(output, packet);

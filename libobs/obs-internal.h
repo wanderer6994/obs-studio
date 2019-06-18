@@ -979,7 +979,8 @@ struct obs_weak_encoder {
 
 struct encoder_callback {
 	bool sent_first_packet;
-	void (*new_packet)(void *param, struct encoder_packet *packet);
+	void (*new_packet)(void *param,
+		struct encoder_packet *streaming_packet, struct encoder_packet *recording_packet);
 	void *param;
 };
 
@@ -1016,8 +1017,10 @@ struct obs_encoder {
 
 	int64_t                         cur_pts;
 
-	struct circlebuf                audio_input_buffer[MAX_AV_PLANES];
-	uint8_t                         *audio_output_buffer[MAX_AV_PLANES];
+	struct circlebuf                audio_streaming_input_buffer[MAX_AV_PLANES];
+	struct circlebuf                audio_recording_input_buffer[MAX_AV_PLANES];
+	uint8_t                         *audio_streaming_output_buffer[MAX_AV_PLANES];
+	uint8_t                         *audio_recording_output_buffer[MAX_AV_PLANES];
 
 	/* if a video encoder is paired with an audio encoder, make it start
 	 * up at the specific timestamp.  if this is the audio encoder,
