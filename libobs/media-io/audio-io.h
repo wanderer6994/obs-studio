@@ -210,7 +210,8 @@ EXPORT int audio_output_open(audio_t **audio, struct audio_output_info *info);
 EXPORT void audio_output_close(audio_t *audio);
 
 typedef void (*audio_output_callback_t)(void *param, size_t mix_idx,
-	struct audio_data *streaming_data, struct audio_data *recording_data);
+	struct audio_data *streaming_data, struct audio_data *recording_data,
+	enum obs_video_rendering_mode mode);
 
 EXPORT bool audio_output_connect(audio_t *video, size_t mix_idx,
 		const struct audio_convert_info *conversion,

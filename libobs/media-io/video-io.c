@@ -141,7 +141,13 @@ static inline bool video_output_cur_frame(struct video_output *video)
 		if (scale_video_output(input, &streaming_frame_info->frame) &&
 			scale_video_output(input, &recording_frame_info->frame))
 			input->callback(input->param,
-				&streaming_frame_info->frame, &recording_frame_info->frame);
+				&streaming_frame_info->frame,
+				&recording_frame_info->frame,
+				OBS_STREAMING_VIDEO_RENDERING);
+			input->callback(input->param,
+				&streaming_frame_info->frame,
+				&recording_frame_info->frame,
+				OBS_RECORDING_VIDEO_RENDERING);
 	}
 
 	pthread_mutex_unlock(&video->input_mutex);

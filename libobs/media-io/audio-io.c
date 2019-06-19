@@ -26,6 +26,7 @@
 
 #include "audio-io.h"
 #include "audio-resampler.h"
+#include "obs.h"
 
 extern profiler_name_store_t *obs_get_profiler_name_store(void);
 
@@ -179,7 +180,9 @@ static inline void do_audio_output(struct audio_output *audio,
 			resample_audio_output(streaming_input, &streaming_data) &&
 			resample_audio_output(recording_input, &recording_data)) {
 			main_input->callback(main_input->param, mix_idx,
-				&streaming_data, &recording_data);
+				&streaming_data, &recording_data, OBS_STREAMING_AUDIO_RENDERING);
+			main_input->callback(main_input->param, mix_idx,
+				&streaming_data, &recording_data, OBS_RECORDING_AUDIO_RENDERING);
 		}
 	}
 
