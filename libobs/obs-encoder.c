@@ -842,7 +842,7 @@ void full_stop(struct obs_encoder *encoder)
 }
 
 void send_off_encoder_packet(obs_encoder_t *encoder, bool success,
-		bool received, struct encoder_packet *pkt)
+		bool received, struct encoder_packet *pkt, int index_callback)
 {
 	if (!success) {
 		full_stop(encoder);
@@ -865,18 +865,25 @@ void send_off_encoder_packet(obs_encoder_t *encoder, bool success,
 
 		pthread_mutex_lock(&encoder->callbacks_mutex);
 
-		for (size_t i = encoder->callbacks.num; i > 0; i--) {
-			struct encoder_callback *cb;
-			cb = encoder->callbacks.array+(i-1);
-			send_packet(encoder, cb, pkt);
+		struct encoder_callback *cb;
+		if (encoder->callbacks.num == 2) {
+			if (index_callback == 1)
+				index_callback = 0;
+			else
+				index_callback = 1;
 		}
+		blog(LOG_INFO, "index_callback: %d", index_callback);
+		cb = encoder->callbacks.array + index_callback;
+		send_packet(encoder, cb, pkt);
+
+		struct obs_output *output = cb->param;
 
 		pthread_mutex_unlock(&encoder->callbacks_mutex);
 	}
 }
 
 static const char *do_encode_name = "do_encode";
-void do_encode(struct obs_encoder *encoder, struct encoder_frame *frame)
+void do_encode(struct obs_encoder *encoder, struct encoder_frame *frame, int index_callback)
 {
 	profile_start(do_encode_name);
 	if (!encoder->profile_encoder_encode_name)
@@ -896,7 +903,7 @@ void do_encode(struct obs_encoder *encoder, struct encoder_frame *frame)
 	success = encoder->info.encode(encoder->context.data, frame, &pkt,
 			&received);
 	profile_end(encoder->profile_encoder_encode_name);
-	send_off_encoder_packet(encoder, success, received, &pkt);
+	send_off_encoder_packet(encoder, success, received, &pkt, index_callback);
 
 	profile_end(do_encode_name);
 }
@@ -908,40 +915,50 @@ static void receive_video(void *param, struct video_data *streaming_frame, struc
 
 	struct obs_encoder    *encoder  = param;
 	struct obs_encoder    *pair     = encoder->paired_encoder;
-	struct encoder_frame  enc_frame;
-	struct video_data     *frame;
 
-	if (strcmp(encoder->context.name, "streaming_h264") == 0)
-		frame = streaming_frame;
-	else if (strcmp(encoder->context.name, "recording_h264") == 0)
-		frame = recording_frame;
-	else
-		return;
+	for (size_t i = encoder->callbacks.num; i > 0; i--) {
+		struct encoder_frame  enc_frame;
+		struct video_data     *frame;
 
-	if (!encoder->first_received && pair) {
-		if (!pair->first_received ||
-		    pair->first_raw_ts > frame->timestamp) {
-			goto wait_for_audio;
+		struct encoder_callback *cb;
+		cb = encoder->callbacks.array + (i - 1);
+		struct obs_output *output = cb->param;
+
+		if (strcmp(output->info.id, "rtmp_output") == 0) {
+			frame = streaming_frame;
+			blog(LOG_INFO, "encoding streaming frame! %d", i - 1);
 		}
+		else if (strcmp(output->info.id, "ffmpeg_muxer") == 0) {
+			frame = recording_frame;
+			blog(LOG_INFO, "encoding recording frame! %d", i - 1);
+		}
+		else
+			return;
+
+		if (!encoder->first_received && pair) {
+			if (!pair->first_received ||
+				pair->first_raw_ts > frame->timestamp) {
+				goto wait_for_audio;
+			}
+		}
+
+		memset(&enc_frame, 0, sizeof(struct encoder_frame));
+
+		for (size_t i = 0; i < MAX_AV_PLANES; i++) {
+			enc_frame.data[i] = frame->data[i];
+			enc_frame.linesize[i] = frame->linesize[i];
+		}
+
+		if (!encoder->start_ts)
+			encoder->start_ts = frame->timestamp;
+
+		enc_frame.frames = 1;
+		enc_frame.pts = encoder->cur_pts;
+
+		do_encode(encoder, &enc_frame, i-1);
+
 	}
-
-	memset(&enc_frame, 0, sizeof(struct encoder_frame));
-
-	for (size_t i = 0; i < MAX_AV_PLANES; i++) {
-		enc_frame.data[i]     = frame->data[i];
-		enc_frame.linesize[i] = frame->linesize[i];
-	}
-
-	if (!encoder->start_ts)
-		encoder->start_ts = frame->timestamp;
-
-	enc_frame.frames = 1;
-	enc_frame.pts    = encoder->cur_pts;
-
-	do_encode(encoder, &enc_frame);
-
 	encoder->cur_pts += encoder->timebase_num;
-
 wait_for_audio:
 	profile_end(receive_video_name);
 }
@@ -1048,7 +1065,7 @@ fail:
 	return success;
 }
 
-static void send_audio_data(struct obs_encoder *encoder)
+static void send_audio_data(struct obs_encoder *encoder, int index_callback)
 {
 	struct encoder_frame  enc_frame;
 
@@ -1066,7 +1083,7 @@ static void send_audio_data(struct obs_encoder *encoder)
 	enc_frame.frames = (uint32_t)encoder->framesize;
 	enc_frame.pts    = encoder->cur_pts;
 
-	do_encode(encoder, &enc_frame);
+	do_encode(encoder, &enc_frame, index_callback);
 
 	encoder->cur_pts += encoder->framesize;
 }
@@ -1077,27 +1094,32 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *stream
 	profile_start(receive_audio_name);
 
 	struct obs_encoder *encoder = param;
-	struct audio_data  *data;
 
-	if (strcmp(encoder->paired_encoder->context.name, "streaming_h264") == 0)
-		data = streaming_data;
-	else if (strcmp(encoder->paired_encoder->context.name, "recording_h264") == 0)
-		data = recording_data;
-	else
-		return;
+	for (size_t i = encoder->callbacks.num; i > 0; i--) {
+		struct audio_data  *data;
+		struct encoder_callback *cb;
+		cb = encoder->callbacks.array + (i - 1);
+		struct obs_output *output = cb->param;
 
-	if (!encoder->first_received) {
-		encoder->first_raw_ts = data->timestamp;
-		encoder->first_received = true;
-		clear_audio(encoder);
+		if (strcmp(output->info.id, "rtmp_output") == 0)
+			data = streaming_data;
+		else if (strcmp(output->info.id, "ffmpeg_muxer") == 0)
+			data = recording_data;
+		else
+			return;
+
+		if (!encoder->first_received) {
+			encoder->first_raw_ts = data->timestamp;
+			encoder->first_received = true;
+			clear_audio(encoder);
+		}
+
+		if (!buffer_audio(encoder, data))
+			goto end;
+
+		while (encoder->audio_input_buffer[0].size >= encoder->framesize_bytes)
+			send_audio_data(encoder, i-1);
 	}
-
-	if (!buffer_audio(encoder, data))
-		goto end;
-
-	while (encoder->audio_input_buffer[0].size >= encoder->framesize_bytes)
-		send_audio_data(encoder);
-
 	UNUSED_PARAMETER(mix_idx);
 
 end:
