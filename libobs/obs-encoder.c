@@ -911,12 +911,17 @@ static void receive_video(void *param, struct video_data *streaming_frame, struc
 	struct encoder_frame  enc_frame;
 	struct video_data     *frame;
 
-	if (strcmp(encoder->context.name, "streaming_h264") == 0)
+	struct encoder_callback *cb;
+	cb = encoder->callbacks.array;
+	struct obs_output *output = cb->param;
+
+	if (strcmp(output->info.id, "rtmp_output") == 0)
 		frame = streaming_frame;
-	else if (strcmp(encoder->context.name, "recording_h264") == 0)
+	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
+			strcmp(output->info.id, "replay_buffer"))
 		frame = recording_frame;
 	else
-		return;
+		goto wait_for_audio;
 
 	if (!encoder->first_received && pair) {
 		if (!pair->first_received ||
@@ -1079,12 +1084,17 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *stream
 	struct obs_encoder *encoder = param;
 	struct audio_data  *data;
 
-	if (strcmp(encoder->paired_encoder->context.name, "streaming_h264") == 0)
+	struct encoder_callback *cb;
+	cb = encoder->callbacks.array;
+	struct obs_output *output = cb->param;
+
+	if (strcmp(output->info.id, "rtmp_output") == 0)
 		data = streaming_data;
-	else if (strcmp(encoder->paired_encoder->context.name, "recording_h264") == 0)
+	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
+		strcmp(output->info.id, "replay_buffer"))
 		data = recording_data;
 	else
-		return;
+		goto end;
 
 	if (!encoder->first_received) {
 		encoder->first_raw_ts = data->timestamp;
