@@ -138,10 +138,19 @@ static inline bool video_output_cur_frame(struct video_output *video)
 	for (size_t i = 0; i < video->inputs.num; i++) {
 		struct video_input *input = video->inputs.array+i;
 
-		if (scale_video_output(input, &streaming_frame_info->frame) &&
-			scale_video_output(input, &recording_frame_info->frame))
-			input->callback(input->param,
-				&streaming_frame_info->frame, &recording_frame_info->frame);
+		if (obs_get_multiple_rendering()) {
+			if (scale_video_output(input, &streaming_frame_info->frame) &&
+				scale_video_output(input, &recording_frame_info->frame))
+				input->callback(input->param,
+					&streaming_frame_info->frame, &recording_frame_info->frame);
+		}
+		else {
+			if (scale_video_output(input, &streaming_frame_info->frame))
+				input->callback(input->param,
+					&streaming_frame_info->frame, &streaming_frame_info->frame);
+		}
+
+
 	}
 
 	pthread_mutex_unlock(&video->input_mutex);

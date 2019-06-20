@@ -433,8 +433,9 @@ struct obs_core {
 	struct obs_core_data            data;
 	struct obs_core_hotkeys         hotkeys;
 
-	enum obs_video_rendering_mode		video_rendering_mode;
-	enum obs_audio_rendering_mode		audio_rendering_mode;
+	bool                          multiple_rendering;
+	enum obs_video_rendering_mode video_rendering_mode;
+	enum obs_audio_rendering_mode audio_rendering_mode;
 };
 
 extern struct obs_core *obs;

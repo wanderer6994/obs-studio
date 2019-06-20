@@ -175,11 +175,21 @@ static inline void do_audio_output(struct audio_output *audio,
 		recording_data.frames = frames;
 		recording_data.timestamp = timestamp;
 
-		if (resample_audio_output(main_input, &main_data) &&
-			resample_audio_output(streaming_input, &streaming_data) &&
-			resample_audio_output(recording_input, &recording_data)) {
-			main_input->callback(main_input->param, mix_idx,
-				&streaming_data, &recording_data);
+		if (obs_get_multiple_rendering()) {
+			if (resample_audio_output(main_input, &main_data) &&
+				resample_audio_output(streaming_input, &streaming_data) &&
+				resample_audio_output(recording_input, &recording_data)) {
+				main_input->callback(main_input->param, mix_idx,
+					&streaming_data, &recording_data);
+			}
+		}
+		else
+		{
+			if (resample_audio_output(main_input, &main_data) &&
+				resample_audio_output(streaming_input, &streaming_data)) {
+				main_input->callback(main_input->param, mix_idx,
+					&streaming_data, &streaming_data);
+			}
 		}
 	}
 

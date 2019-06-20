@@ -633,25 +633,31 @@ static void scene_video_render(void *data, gs_effect_t *effect)
 
 	item = scene->first_item;
 	while (item) {
-		switch (obs_get_video_rendering_mode()) {
-		case OBS_MAIN_VIDEO_RENDERING:
-		{
+		if (obs_get_multiple_rendering()) {
+			switch (obs_get_video_rendering_mode()) {
+			case OBS_MAIN_VIDEO_RENDERING:
+			{
+				if (item->user_visible)
+					render_item(item);
+				break;
+			}
+			case OBS_STREAMING_VIDEO_RENDERING:
+			{
+				if (item->user_visible && item->showing_streaming)
+					render_item(item);
+				break;
+			}
+			case OBS_RECORDING_VIDEO_RENDERING:
+			{
+				if (item->user_visible && item->showing_recording)
+					render_item(item);
+				break;
+			}
+			}
+		}
+		else {
 			if (item->user_visible)
 				render_item(item);
-			break;
-		}
-		case OBS_STREAMING_VIDEO_RENDERING:
-		{
-			if (item->user_visible && item->showing_streaming)
-				render_item(item);
-			break;
-		}
-		case OBS_RECORDING_VIDEO_RENDERING:
-		{
-			if (item->user_visible && item->showing_recording)
-				render_item(item);
-			break;
-		}
 		}
 
 		item = item->next;
@@ -945,22 +951,28 @@ static void apply_scene_item_audio_actions(struct obs_scene_item *item,
 		float **p_buf, uint64_t ts, size_t sample_rate)
 {
 	bool cur_visible;
-	switch (obs_get_audio_rendering_mode()) {
-	case OBS_MAIN_AUDIO_RENDERING:
-	{
+
+	if (obs_get_multiple_rendering()) {
+		switch (obs_get_audio_rendering_mode()) {
+		case OBS_MAIN_AUDIO_RENDERING:
+		{
+			cur_visible = item->visible;
+			break;
+		}
+		case OBS_STREAMING_AUDIO_RENDERING:
+		{
+			cur_visible = item->visible && item->showing_streaming;
+			break;
+		}
+		case OBS_RECORDING_AUDIO_RENDERING:
+		{
+			cur_visible = item->visible && item->showing_recording;
+			break;
+		}
+		}
+	}
+	else {
 		cur_visible = item->visible;
-		break;
-	}
-	case OBS_STREAMING_AUDIO_RENDERING:
-	{
-		cur_visible = item->visible && item->showing_streaming;
-		break;
-	}
-	case OBS_RECORDING_AUDIO_RENDERING:
-	{
-		cur_visible = item->visible && item->showing_recording;
-		break;
-	}
 	}
 
 	uint64_t frame_num = 0;
@@ -1000,22 +1012,27 @@ static void apply_scene_item_audio_actions(struct obs_scene_item *item,
 				buf[frame_num] = cur_visible ? 1.0f : 0.0f;
 		}
 
-		switch (obs_get_audio_rendering_mode()) {
-		case OBS_MAIN_AUDIO_RENDERING:
-		{
+		if (obs_get_multiple_rendering()) {
+			switch (obs_get_audio_rendering_mode()) {
+			case OBS_MAIN_AUDIO_RENDERING:
+			{
+				cur_visible = item->visible;
+				break;
+			}
+			case OBS_STREAMING_AUDIO_RENDERING:
+			{
+				cur_visible = item->visible && item->showing_streaming;
+				break;
+			}
+			case OBS_RECORDING_AUDIO_RENDERING:
+			{
+				cur_visible = item->visible && item->showing_recording;
+				break;
+			}
+			}
+		}
+		else {
 			cur_visible = item->visible;
-			break;
-		}
-		case OBS_STREAMING_AUDIO_RENDERING:
-		{
-			cur_visible = item->visible && item->showing_streaming;
-			break;
-		}
-		case OBS_RECORDING_AUDIO_RENDERING:
-		{
-			cur_visible = item->visible && item->showing_recording;
-			break;
-		}
 		}
 	}
 
@@ -1114,29 +1131,37 @@ static bool scene_audio_render(void *data, uint64_t *ts_out,
 
 	item = scene->first_item;
 	while (item) {
-		switch (obs_get_audio_rendering_mode()) {
-		case OBS_MAIN_AUDIO_RENDERING:
-		{
+		if (obs_get_multiple_rendering()) {
+			switch (obs_get_audio_rendering_mode()) {
+			case OBS_MAIN_AUDIO_RENDERING:
+			{
+				if (!obs_source_audio_pending(item->source) && item->visible) {
+					render_item_audio(item, &timestamp);
+				}
+				break;
+			}
+			case OBS_STREAMING_AUDIO_RENDERING:
+			{
+				if (!obs_source_audio_pending(item->source) && item->visible && item->showing_streaming) {
+					render_item_audio(item, &timestamp);
+				}
+				break;
+			}
+			case OBS_RECORDING_AUDIO_RENDERING:
+			{
+				if (!obs_source_audio_pending(item->source) && item->visible && item->showing_recording) {
+					render_item_audio(item, &timestamp);
+				}
+				break;
+			}
+			}
+		}
+		else {
 			if (!obs_source_audio_pending(item->source) && item->visible) {
 				render_item_audio(item, &timestamp);
 			}
-			break;
 		}
-		case OBS_STREAMING_AUDIO_RENDERING:
-		{
-			if (!obs_source_audio_pending(item->source) && item->visible && item->showing_streaming) {
-				render_item_audio(item, &timestamp);
-			}
-			break;
-		}
-		case OBS_RECORDING_AUDIO_RENDERING:
-		{
-			if (!obs_source_audio_pending(item->source) && item->visible && item->showing_recording) {
-				render_item_audio(item, &timestamp);
-			}
-			break;
-		}
-		}
+
 
 		item = item->next;
 	}
@@ -1178,13 +1203,23 @@ static bool scene_audio_render(void *data, uint64_t *ts_out,
 				source_ts - timestamp);
 		count = AUDIO_OUTPUT_FRAMES - pos;
 
-		if (!apply_buf &&
-			((obs_get_audio_rendering_mode() == OBS_MAIN_AUDIO_RENDERING && !item->visible) ||
+		if (obs_get_multiple_rendering()) {
+			if (!apply_buf &&
+				((obs_get_audio_rendering_mode() == OBS_MAIN_AUDIO_RENDERING && !item->visible) ||
 				(obs_get_audio_rendering_mode() == OBS_STREAMING_AUDIO_RENDERING && !item->visible && !item->showing_streaming) ||
-				(obs_get_audio_rendering_mode() == OBS_RECORDING_AUDIO_RENDERING && !item->visible && !item->showing_recording))) {
-			item = item->next;
-			continue;
+					(obs_get_audio_rendering_mode() == OBS_RECORDING_AUDIO_RENDERING && !item->visible && !item->showing_recording))) {
+				item = item->next;
+				continue;
+			}
 		}
+		else {
+			if (!apply_buf && !item->visible) {
+				item = item->next;
+				continue;
+			}
+		}
+
+
 
 		obs_source_get_audio_mix(item->source, &child_audio);
 		for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {

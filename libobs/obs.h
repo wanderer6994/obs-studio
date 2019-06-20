@@ -643,6 +643,12 @@ EXPORT void obs_render_main_view(void);
 /** Renders the last main output texture */
 EXPORT void obs_render_main_texture(void);
 
+/** Enable/disable multiple rendering mode*/
+EXPORT void obs_set_multiple_rendering(bool multiple_rendering);
+
+/** Get current multiple rendering mode*/
+EXPORT bool obs_get_multiple_rendering(void);
+
 /** Sets video rendering mode*/
 EXPORT void obs_set_video_rendering_mode(enum obs_video_rendering_mode mode);
 

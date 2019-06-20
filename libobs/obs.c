@@ -852,6 +852,7 @@ static bool obs_init(const char *locale, const char *module_config_path,
 	obs_register_source(&scene_info);
 	obs_register_source(&group_info);
 	add_default_module_paths();
+	obs->multiple_rendering   = false;
 	obs->video_rendering_mode = OBS_MAIN_VIDEO_RENDERING;
 	obs->audio_rendering_mode = OBS_MAIN_AUDIO_RENDERING;
 	return true;
@@ -1663,6 +1664,21 @@ void obs_render_main_texture(void)
 
 	while (gs_effect_loop(effect, "Draw"))
 		gs_draw_sprite(tex, 0, 0, 0);
+}
+
+void obs_set_multiple_rendering(bool multiple_rendering)
+{
+	if (!obs) return;
+
+	obs->multiple_rendering = multiple_rendering;
+}
+
+bool obs_get_multiple_rendering(void)
+{
+	if (!obs)
+		return false;
+	else
+		return obs->multiple_rendering;
 }
 
 void obs_set_video_rendering_mode(enum obs_video_rendering_mode mode)
