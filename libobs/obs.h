@@ -643,6 +643,12 @@ EXPORT void obs_render_main_view(void);
 /** Renders the last main output texture */
 EXPORT void obs_render_main_texture(void);
 
+/** Renders the last streaming output texture */
+EXPORT void obs_render_streaming_texture(void);
+
+/** Renders the last recording output texture */
+EXPORT void obs_render_recording_texture(void);
+
 /** Enable/disable multiple rendering mode*/
 EXPORT void obs_set_multiple_rendering(bool multiple_rendering);
 
