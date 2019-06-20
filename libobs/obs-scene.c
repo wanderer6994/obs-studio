@@ -642,13 +642,13 @@ static void scene_video_render(void *data, gs_effect_t *effect)
 		}
 		case OBS_STREAMING_VIDEO_RENDERING:
 		{
-			if (item->user_visible && item->source->showing_streaming)
+			if (item->user_visible && item->showing_streaming)
 				render_item(item);
 			break;
 		}
 		case OBS_RECORDING_VIDEO_RENDERING:
 		{
-			if (item->user_visible && item->source->showing_recording)
+			if (item->user_visible && item->showing_recording)
 				render_item(item);
 			break;
 		}
@@ -699,6 +699,8 @@ static void scene_load_item(struct obs_scene *scene, obs_data_t *item_data)
 	struct obs_scene_item *item;
 	bool visible;
 	bool lock;
+	bool showing_streaming;
+	bool showing_recording;
 
 	if (obs_data_get_bool(item_data, "group_item_backup"))
 		return;
@@ -732,8 +734,11 @@ static void scene_load_item(struct obs_scene *scene, obs_data_t *item_data)
 	item->align   = (uint32_t)obs_data_get_int(item_data, "align");
 	visible = obs_data_get_bool(item_data, "visible");
 	lock = obs_data_get_bool(item_data, "locked");
+	showing_streaming = obs_data_get_bool(item_data, "showing_streaming");
+	showing_recording = obs_data_get_bool(item_data, "showing_recording");
 	obs_data_get_vec2(item_data, "pos",    &item->pos);
 	obs_data_get_vec2(item_data, "scale",  &item->scale);
+
 
 	obs_data_release(item->private_settings);
 	item->private_settings =
@@ -743,6 +748,8 @@ static void scene_load_item(struct obs_scene *scene, obs_data_t *item_data)
 
 	set_visibility(item, visible);
 	obs_sceneitem_set_locked(item, lock);
+	obs_sceneitem_set_showing_streaming(item, showing_streaming);
+	obs_sceneitem_set_showing_recording(item, showing_recording);
 
 	item->bounds_type =
 		(enum obs_bounds_type)obs_data_get_int(item_data,
@@ -836,22 +843,24 @@ static void scene_save_item(obs_data_array_t *array,
 		get_ungrouped_transform(backup_group, &pos, &scale, &rot);
 	}
 
-	obs_data_set_string(item_data, "name",         name);
-	obs_data_set_bool  (item_data, "visible",      item->user_visible);
-	obs_data_set_bool  (item_data, "locked",       item->locked);
-	obs_data_set_double(item_data, "rot",          rot);
-	obs_data_set_vec2  (item_data, "pos",          &pos);
-	obs_data_set_vec2  (item_data, "scale",        &scale);
-	obs_data_set_int   (item_data, "align",        (int)item->align);
-	obs_data_set_int   (item_data, "bounds_type",  (int)item->bounds_type);
-	obs_data_set_int   (item_data, "bounds_align", (int)item->bounds_align);
-	obs_data_set_vec2 (item_data, "bounds",       &item->bounds);
-	obs_data_set_int  (item_data, "crop_left",    (int)item->crop.left);
-	obs_data_set_int  (item_data, "crop_top",     (int)item->crop.top);
-	obs_data_set_int  (item_data, "crop_right",   (int)item->crop.right);
-	obs_data_set_int  (item_data, "crop_bottom",  (int)item->crop.bottom);
-	obs_data_set_int  (item_data, "id",           item->id);
-	obs_data_set_bool (item_data, "group_item_backup", !!backup_group);
+	obs_data_set_string(item_data, "name",              name);
+	obs_data_set_bool  (item_data, "visible",           item->user_visible);
+	obs_data_set_bool  (item_data, "locked",            item->locked);
+	obs_data_set_bool  (item_data, "showing_streaming", item->showing_streaming);
+	obs_data_set_bool  (item_data, "showing_recording", item->showing_recording);
+	obs_data_set_double(item_data, "rot",               rot);
+	obs_data_set_vec2  (item_data, "pos",               &pos);
+	obs_data_set_vec2  (item_data, "scale",             &scale);
+	obs_data_set_int   (item_data, "align",             (int)item->align);
+	obs_data_set_int   (item_data, "bounds_type",       (int)item->bounds_type);
+	obs_data_set_int   (item_data, "bounds_align",      (int)item->bounds_align);
+	obs_data_set_vec2 (item_data, "bounds",             &item->bounds);
+	obs_data_set_int  (item_data, "crop_left",          (int)item->crop.left);
+	obs_data_set_int  (item_data, "crop_top",           (int)item->crop.top);
+	obs_data_set_int  (item_data, "crop_right",         (int)item->crop.right);
+	obs_data_set_int  (item_data, "crop_bottom",        (int)item->crop.bottom);
+	obs_data_set_int  (item_data, "id",                 item->id);
+	obs_data_set_bool (item_data, "group_item_backup",  !!backup_group);
 
 	if (item->is_group) {
 		obs_scene_t *group_scene = item->source->context.data;
@@ -944,12 +953,12 @@ static void apply_scene_item_audio_actions(struct obs_scene_item *item,
 	}
 	case OBS_STREAMING_AUDIO_RENDERING:
 	{
-		cur_visible = item->visible && item->source->showing_streaming;
+		cur_visible = item->visible && item->showing_streaming;
 		break;
 	}
 	case OBS_RECORDING_AUDIO_RENDERING:
 	{
-		cur_visible = item->visible && item->source->showing_recording;
+		cur_visible = item->visible && item->showing_recording;
 		break;
 	}
 	}
@@ -999,12 +1008,12 @@ static void apply_scene_item_audio_actions(struct obs_scene_item *item,
 		}
 		case OBS_STREAMING_AUDIO_RENDERING:
 		{
-			cur_visible = item->visible && item->source->showing_streaming;
+			cur_visible = item->visible && item->showing_streaming;
 			break;
 		}
 		case OBS_RECORDING_AUDIO_RENDERING:
 		{
-			cur_visible = item->visible && item->source->showing_recording;
+			cur_visible = item->visible && item->showing_recording;
 			break;
 		}
 		}
@@ -1115,14 +1124,14 @@ static bool scene_audio_render(void *data, uint64_t *ts_out,
 		}
 		case OBS_STREAMING_AUDIO_RENDERING:
 		{
-			if (!obs_source_audio_pending(item->source) && item->visible && item->source->showing_streaming) {
+			if (!obs_source_audio_pending(item->source) && item->visible && item->showing_streaming) {
 				render_item_audio(item, &timestamp);
 			}
 			break;
 		}
 		case OBS_RECORDING_AUDIO_RENDERING:
 		{
-			if (!obs_source_audio_pending(item->source) && item->visible && item->source->showing_recording) {
+			if (!obs_source_audio_pending(item->source) && item->visible && item->showing_recording) {
 				render_item_audio(item, &timestamp);
 			}
 			break;
@@ -1171,8 +1180,8 @@ static bool scene_audio_render(void *data, uint64_t *ts_out,
 
 		if (!apply_buf &&
 			((obs_get_audio_rendering_mode() == OBS_MAIN_AUDIO_RENDERING && !item->visible) ||
-				(obs_get_audio_rendering_mode() == OBS_STREAMING_AUDIO_RENDERING && !item->visible && !item->source->showing_streaming) ||
-				(obs_get_audio_rendering_mode() == OBS_RECORDING_AUDIO_RENDERING && !item->visible && !item->source->showing_recording))) {
+				(obs_get_audio_rendering_mode() == OBS_STREAMING_AUDIO_RENDERING && !item->visible && !item->showing_streaming) ||
+				(obs_get_audio_rendering_mode() == OBS_RECORDING_AUDIO_RENDERING && !item->visible && !item->showing_recording))) {
 			item = item->next;
 			continue;
 		}
@@ -1713,6 +1722,8 @@ static obs_sceneitem_t *obs_scene_add_internal(obs_scene_t *scene,
 	vec2_set(&item->scale, 1.0f, 1.0f);
 	matrix4_identity(&item->draw_transform);
 	matrix4_identity(&item->box_transform);
+	item->showing_recording = true;
+	item->showing_streaming = true;
 
 	obs_source_addref(source);
 
@@ -2184,6 +2195,48 @@ bool obs_sceneitem_set_locked(obs_sceneitem_t *item, bool lock)
 		return false;
 
 	item->locked = lock;
+
+	return true;
+}
+
+bool obs_sceneitem_showing_streaming(const obs_sceneitem_t *item)
+{
+	return item ? item->showing_streaming : false;
+}
+
+bool obs_sceneitem_set_showing_streaming(obs_sceneitem_t *item, bool showing_streaming)
+{
+	if (!item)
+		return false;
+
+	if (item->showing_streaming == showing_streaming)
+		return false;
+
+	if (!item->parent)
+		return false;
+
+	item->showing_streaming = showing_streaming;
+
+	return true;
+}
+
+bool obs_sceneitem_showing_recording(const obs_sceneitem_t *item)
+{
+	return item ? item->showing_recording : false;
+}
+
+bool obs_sceneitem_set_showing_recording(obs_sceneitem_t *item, bool showing_recording)
+{
+	if (!item)
+		return false;
+
+	if (item->showing_recording == showing_recording)
+		return false;
+
+	if (!item->parent)
+		return false;
+
+	item->showing_recording = showing_recording;
 
 	return true;
 }

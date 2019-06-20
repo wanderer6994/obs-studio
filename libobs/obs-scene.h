@@ -47,6 +47,8 @@ struct obs_scene_item {
 	bool                  visible;
 	bool                  selected;
 	bool                  locked;
+	bool		      showing_recording;
+	bool		      showing_streaming;
 
 	gs_texrender_t        *item_render;
 	struct obs_sceneitem_crop crop;
