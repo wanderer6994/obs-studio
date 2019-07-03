@@ -507,7 +507,7 @@ void audio_output_disconnect(audio_t *audio, size_t mix_idx,
 		audio_input_free(streaming_mix->inputs.array + idx);
 		da_erase(streaming_mix->inputs, idx);
 
-		struct audio_mix *recording_mix = &audio->main_mixes[mix_idx];
+		struct audio_mix *recording_mix = &audio->recording_mixes[mix_idx];
 		audio_input_free(recording_mix->inputs.array + idx);
 		da_erase(recording_mix->inputs, idx);
 	}
