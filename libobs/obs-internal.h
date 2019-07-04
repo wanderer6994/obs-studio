@@ -251,6 +251,11 @@ struct obs_textures {
 	bool                            textures_converted[NUM_TEXTURES];
 };
 
+struct obs_gpu_queues {
+	struct circlebuf                gpu_encoder_queue;
+	struct circlebuf                gpu_encoder_avail_queue;
+};
+
 struct obs_core_video {
 	graphics_t                      *graphics;
 	struct obs_textures             textures[NUM_RENDERING_MODES];
@@ -274,8 +279,7 @@ struct obs_core_video {
 	long                            raw_active;
 	long                            gpu_encoder_active;
 	pthread_mutex_t                 gpu_encoder_mutex;
-	struct circlebuf                gpu_encoder_queue;
-	struct circlebuf                gpu_encoder_avail_queue;
+	struct obs_gpu_queues           gpu_queues[NUM_RENDERING_MODES];
 	DARRAY(obs_encoder_t *)         gpu_encoders;
 	os_sem_t                        *gpu_encode_semaphore;
 	os_event_t                      *gpu_encode_inactive;
