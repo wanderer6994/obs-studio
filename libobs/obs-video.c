@@ -399,79 +399,79 @@ end:
 
 #ifdef _WIN32
 static inline bool queue_frame(struct obs_core_video *video, bool raw_active,
-		struct obs_vframe_info *vframe_info, int prev_texture, enum obs_rendering_mode mode)
+		struct obs_vframe_info *vframe_info, int prev_texture)
 {
-	bool duplicate = !video->gpu_encoder_avail_queue.size ||
-		(video->gpu_encoder_queue.size && vframe_info->count > 1);
+	for (size_t i = OBS_STREAMING_VIDEO_RENDERING; i < NUM_RENDERING_MODES; i++) {
+		bool duplicate = !video->gpu_queues[i].gpu_encoder_avail_queue.size ||
+			(video->gpu_queues[i].gpu_encoder_queue.size && vframe_info->count > 1);
 
-	if (duplicate) {
-		struct obs_tex_frame *tf = circlebuf_data(
-				&video->gpu_encoder_queue,
-				video->gpu_encoder_queue.size - sizeof(*tf));
+		if (duplicate) {
+			struct obs_tex_frame *tf = circlebuf_data(
+				&video->gpu_queues[i].gpu_encoder_queue,
+				video->gpu_queues[i].gpu_encoder_queue.size - sizeof(*tf));
 
-		/* texture-based encoding is stopping */
-		if (!tf) {
-			return false;
+			/* texture-based encoding is stopping */
+			if (!tf) {
+				return false;
+			}
+
+			tf->count++;
+			continue;
 		}
 
-		tf->count++;
-		os_sem_post(video->gpu_encode_semaphore);
-		goto finish;
+		struct obs_tex_frame tf;
+		circlebuf_pop_front(&video->gpu_queues[i].gpu_encoder_avail_queue, &tf, sizeof(tf));
+
+		if (tf.released) {
+			gs_texture_acquire_sync(tf.tex, tf.lock_key, GS_WAIT_INFINITE);
+			tf.released = false;
+		}
+
+		/* the vframe_info->count > 1 case causing a copy can only happen if by
+		 * some chance the very first frame has to be duplicated for whatever
+		 * reason.  otherwise, it goes to the 'duplicate' case above, which
+		 * will ensure better performance. */
+		if (raw_active || vframe_info->count > 1) {
+			gs_copy_texture(tf.tex, video->textures[i].convert_textures[prev_texture]);
+		}
+		else {
+			gs_texture_t *tex = video->textures[i].convert_textures[prev_texture];
+			gs_texture_t *tex_uv = video->textures[i].convert_uv_textures[prev_texture];
+
+			video->textures[i].convert_textures[prev_texture] = tf.tex;
+			video->textures[i].convert_uv_textures[prev_texture] = tf.tex_uv;
+
+			tf.tex = tex;
+			tf.tex_uv = tex_uv;
+		}
+
+		tf.count = 1;
+		tf.timestamp = vframe_info->timestamp;
+		tf.released = true;
+		tf.handle = gs_texture_get_shared_handle(tf.tex);
+		gs_texture_release_sync(tf.tex, ++tf.lock_key);
+		circlebuf_push_back(&video->gpu_queues[i].gpu_encoder_queue, &tf, sizeof(tf));
 	}
-
-	struct obs_tex_frame tf;
-	circlebuf_pop_front(&video->gpu_encoder_avail_queue, &tf, sizeof(tf));
-
-	if (tf.released) {
-		gs_texture_acquire_sync(tf.tex, tf.lock_key, GS_WAIT_INFINITE);
-		tf.released = false;
-	}
-
-	/* the vframe_info->count > 1 case causing a copy can only happen if by
-	 * some chance the very first frame has to be duplicated for whatever
-	 * reason.  otherwise, it goes to the 'duplicate' case above, which
-	 * will ensure better performance. */
-	if (raw_active || vframe_info->count > 1) {
-		gs_copy_texture(tf.tex, video->textures[mode].convert_textures[prev_texture]);
-	} else {
-		gs_texture_t *tex = video->textures[mode].convert_textures[prev_texture];
-		gs_texture_t *tex_uv = video->textures[mode].convert_uv_textures[prev_texture];
-
-		video->textures[mode].convert_textures[prev_texture] = tf.tex;
-		video->textures[mode].convert_uv_textures[prev_texture] = tf.tex_uv;
-
-		tf.tex = tex;
-		tf.tex_uv = tex_uv;
-	}
-
-	tf.count = 1;
-	tf.timestamp = vframe_info->timestamp;
-	tf.released = true;
-	tf.handle = gs_texture_get_shared_handle(tf.tex);
-	gs_texture_release_sync(tf.tex, ++tf.lock_key);
-	circlebuf_push_back(&video->gpu_encoder_queue, &tf, sizeof(tf));
 
 	os_sem_post(video->gpu_encode_semaphore);
-
-finish:
 	return --vframe_info->count;
 }
 
 extern void full_stop(struct obs_encoder *encoder);
 
 static inline void encode_gpu(struct obs_core_video *video, bool raw_active,
-		struct obs_vframe_info *vframe_info, int prev_texture, enum obs_rendering_mode mode)
+		struct obs_vframe_info *vframe_info, int prev_texture)
 {
-	while (queue_frame(video, raw_active, vframe_info, prev_texture, mode));
+	while (queue_frame(video, raw_active, vframe_info, prev_texture));
 }
 
 static const char *output_gpu_encoders_name = "output_gpu_encoders";
 static void output_gpu_encoders(struct obs_core_video *video, bool raw_active,
-		int prev_texture, enum obs_rendering_mode mode)
+		int prev_texture)
 {
 	profile_start(output_gpu_encoders_name);
-
-	if (!video->textures[mode].textures_converted[prev_texture])
+	if (!video->textures[OBS_STREAMING_VIDEO_RENDERING].textures_converted[prev_texture] ||
+		!video->textures[OBS_RECORDING_VIDEO_RENDERING].textures_converted[prev_texture])
 		goto end;
 	if (!video->vframe_info_buffer_gpu.size)
 		goto end;
@@ -481,7 +481,7 @@ static void output_gpu_encoders(struct obs_core_video *video, bool raw_active,
 			sizeof(vframe_info));
 
 	pthread_mutex_lock(&video->gpu_encoder_mutex);
-	encode_gpu(video, raw_active, &vframe_info, prev_texture, mode);
+	encode_gpu(video, raw_active, &vframe_info, prev_texture);
 	pthread_mutex_unlock(&video->gpu_encoder_mutex);
 
 end:
@@ -532,8 +532,7 @@ static inline void render_video(struct obs_core_video *video,
 #ifdef _WIN32
 		if (gpu_active) {
 			gs_flush();
-			output_gpu_encoders(video, raw_active, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
-			output_gpu_encoders(video, raw_active, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+			output_gpu_encoders(video, raw_active, prev_texture);
 		}
 #endif
 		if (raw_active) {
