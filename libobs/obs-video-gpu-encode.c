@@ -62,6 +62,9 @@ static void *gpu_encode_thread(void *unused)
 
 		/* -------------- */
 
+		bool stream_encoded = false;
+		bool record_encoded = false;
+
 		for (size_t i = 0; i < encoders.num; i++) {
 			struct encoder_packet pkt = {0};
 			bool received = false;
@@ -80,10 +83,12 @@ static void *gpu_encode_thread(void *unused)
 			if (obs_get_multiple_rendering()) {
 				if (strcmp(output->info.id, "rtmp_output") == 0) {
 					mode = OBS_STREAMING_VIDEO_RENDERING;
+					stream_encoded = true;
 				}
 				else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
 					strcmp(output->info.id, "replay_buffer")) {
 					mode = OBS_RECORDING_VIDEO_RENDERING;
+					record_encoded = true;
 				}
 			}
 
@@ -150,6 +155,29 @@ static void *gpu_encode_thread(void *unused)
 			/* -------------- */
 		}
 
+		pthread_mutex_lock(&video->gpu_encoder_mutex);
+
+		if (!stream_encoded) {
+			struct obs_tex_frame new_frame;
+			circlebuf_pop_front(
+				&video->gpu_queues[OBS_STREAMING_VIDEO_RENDERING].gpu_encoder_queue,
+				&new_frame, sizeof(new_frame));
+			circlebuf_push_back(
+				&video->gpu_queues[OBS_STREAMING_VIDEO_RENDERING].gpu_encoder_avail_queue,
+				&new_frame, sizeof(new_frame));
+		}
+
+		if (!record_encoded) {
+			struct obs_tex_frame new_frame;
+			circlebuf_pop_front(
+				&video->gpu_queues[OBS_RECORDING_VIDEO_RENDERING].gpu_encoder_queue,
+				&new_frame, sizeof(new_frame));
+			circlebuf_push_back(
+				&video->gpu_queues[OBS_RECORDING_VIDEO_RENDERING].gpu_encoder_avail_queue,
+				&new_frame, sizeof(new_frame));
+		}
+
+		pthread_mutex_unlock(&video->gpu_encoder_mutex);
 
 		if (--tf.count) {
 			video_output_inc_texture_skipped_frames(video->video);
