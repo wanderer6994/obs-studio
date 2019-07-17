@@ -91,7 +91,6 @@ static void *gpu_encode_thread(void *unused)
 					record_encoded = true;
 				}
 			}
-
 			circlebuf_pop_front(
 				&video->gpu_queues[mode].gpu_encoder_queue,
 				&tf, sizeof(tf));
@@ -157,24 +156,26 @@ static void *gpu_encode_thread(void *unused)
 
 		pthread_mutex_lock(&video->gpu_encoder_mutex);
 
-		if (!stream_encoded) {
-			struct obs_tex_frame new_frame;
-			circlebuf_pop_front(
-				&video->gpu_queues[OBS_STREAMING_VIDEO_RENDERING].gpu_encoder_queue,
-				&new_frame, sizeof(new_frame));
-			circlebuf_push_back(
-				&video->gpu_queues[OBS_STREAMING_VIDEO_RENDERING].gpu_encoder_avail_queue,
-				&new_frame, sizeof(new_frame));
-		}
+		if (obs_get_multiple_rendering()) {
+			if (!stream_encoded) {
+				struct obs_tex_frame new_frame;
+				circlebuf_pop_front(
+					&video->gpu_queues[OBS_STREAMING_VIDEO_RENDERING].gpu_encoder_queue,
+					&new_frame, sizeof(new_frame));
+				circlebuf_push_back(
+					&video->gpu_queues[OBS_STREAMING_VIDEO_RENDERING].gpu_encoder_avail_queue,
+					&new_frame, sizeof(new_frame));
+			}
 
-		if (!record_encoded) {
-			struct obs_tex_frame new_frame;
-			circlebuf_pop_front(
-				&video->gpu_queues[OBS_RECORDING_VIDEO_RENDERING].gpu_encoder_queue,
-				&new_frame, sizeof(new_frame));
-			circlebuf_push_back(
-				&video->gpu_queues[OBS_RECORDING_VIDEO_RENDERING].gpu_encoder_avail_queue,
-				&new_frame, sizeof(new_frame));
+			if (!record_encoded) {
+				struct obs_tex_frame new_frame;
+				circlebuf_pop_front(
+					&video->gpu_queues[OBS_RECORDING_VIDEO_RENDERING].gpu_encoder_queue,
+					&new_frame, sizeof(new_frame));
+				circlebuf_push_back(
+					&video->gpu_queues[OBS_RECORDING_VIDEO_RENDERING].gpu_encoder_avail_queue,
+					&new_frame, sizeof(new_frame));
+			}
 		}
 
 		pthread_mutex_unlock(&video->gpu_encoder_mutex);

@@ -401,7 +401,17 @@ end:
 static inline bool queue_frame(struct obs_core_video *video, bool raw_active,
 		struct obs_vframe_info *vframe_info, int prev_texture)
 {
-	for (size_t i = OBS_STREAMING_VIDEO_RENDERING; i < NUM_RENDERING_MODES; i++) {
+	uint32_t start, end;
+
+	if (!obs_get_multiple_rendering()) {
+		start = OBS_MAIN_VIDEO_RENDERING;
+		end = NUM_RENDERING_MODES - 2;
+	}
+	else {
+		start = OBS_STREAMING_VIDEO_RENDERING;
+		end = NUM_RENDERING_MODES;
+	}
+	for (size_t i = start; i < end; i++) {
 		bool duplicate = !video->gpu_queues[i].gpu_encoder_avail_queue.size ||
 			(video->gpu_queues[i].gpu_encoder_queue.size && vframe_info->count > 1);
 
@@ -470,9 +480,16 @@ static void output_gpu_encoders(struct obs_core_video *video, bool raw_active,
 		int prev_texture)
 {
 	profile_start(output_gpu_encoders_name);
-	if (!video->textures[OBS_STREAMING_VIDEO_RENDERING].textures_converted[prev_texture] ||
-		!video->textures[OBS_RECORDING_VIDEO_RENDERING].textures_converted[prev_texture])
-		goto end;
+
+	if (!obs_get_multiple_rendering()) {
+		if (!video->textures[OBS_MAIN_VIDEO_RENDERING].textures_converted[prev_texture])
+			goto end;
+	}
+	else {
+		if (!video->textures[OBS_STREAMING_VIDEO_RENDERING].textures_converted[prev_texture] ||
+			!video->textures[OBS_RECORDING_VIDEO_RENDERING].textures_converted[prev_texture])
+			goto end;
+	}
 	if (!video->vframe_info_buffer_gpu.size)
 		goto end;
 
@@ -499,12 +516,20 @@ static inline void render_video(struct obs_core_video *video,
 	gs_set_cull_mode(GS_NEITHER);
 
 	render_main_texture(video, cur_texture, OBS_MAIN_VIDEO_RENDERING);
-	render_main_texture(video, cur_texture, OBS_STREAMING_VIDEO_RENDERING);
-	render_main_texture(video, cur_texture, OBS_RECORDING_VIDEO_RENDERING);
+
+	if (obs_get_multiple_rendering()) {
+		render_main_texture(video, cur_texture, OBS_STREAMING_VIDEO_RENDERING);
+		render_main_texture(video, cur_texture, OBS_RECORDING_VIDEO_RENDERING);
+	}
 
 	if (raw_active || gpu_active) {
-		render_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
-		render_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+		if (!obs_get_multiple_rendering()) {
+			render_output_texture(video, cur_texture, prev_texture, OBS_MAIN_VIDEO_RENDERING);
+		}
+		else {
+			render_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
+			render_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+		}
 
 #ifdef _WIN32
 		if (gpu_active) {
@@ -516,16 +541,29 @@ static inline void render_video(struct obs_core_video *video,
 	if (raw_active || gpu_active) {
 		if (video->gpu_conversion) {
 			if (video->using_nv12_tex) {
-				render_convert_texture_nv12(video,
-					cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
-				render_convert_texture_nv12(video,
-					cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+				if (!obs_get_multiple_rendering()) {
+					render_convert_texture_nv12(video,
+						cur_texture, prev_texture, OBS_MAIN_VIDEO_RENDERING);
+				}
+				else {
+
+					render_convert_texture_nv12(video,
+						cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
+					render_convert_texture_nv12(video,
+						cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+				}
 			}
 			else {
-				render_convert_texture(video,
-					cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
-				render_convert_texture(video,
-					cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+				if (!obs_get_multiple_rendering()) {
+					render_convert_texture(video,
+						cur_texture, prev_texture, OBS_MAIN_VIDEO_RENDERING);
+				}
+				else {
+					render_convert_texture(video,
+						cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
+					render_convert_texture(video,
+						cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+				}
 			}
 		}
 
@@ -536,8 +574,13 @@ static inline void render_video(struct obs_core_video *video,
 		}
 #endif
 		if (raw_active) {
-			stage_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
-			stage_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+			if (!obs_get_multiple_rendering()) {
+				stage_output_texture(video, cur_texture, prev_texture, OBS_MAIN_VIDEO_RENDERING);
+			}
+			else {
+				stage_output_texture(video, cur_texture, prev_texture, OBS_STREAMING_VIDEO_RENDERING);
+				stage_output_texture(video, cur_texture, prev_texture, OBS_RECORDING_VIDEO_RENDERING);
+			}
 		}
 	}
 
@@ -710,35 +753,61 @@ static inline void copy_rgbx_frame(
 }
 
 static inline void output_video_data(struct obs_core_video *video,
+	        struct video_data *main_input_frame,
 		struct video_data *streaming_input_frame,
 		struct video_data *recording_input_frame,
 		int count)
 {
 	const struct video_output_info *info;
+	struct video_frame main_output_frame;
 	struct video_frame streaming_output_frame;
 	struct video_frame recording_output_frame;
 	bool locked;
 
 	info = video_output_get_info(video->video);
 
-	locked = video_output_lock_frame(video->video, &streaming_output_frame, count,
-		streaming_input_frame->timestamp, OBS_STREAMING_VIDEO_RENDERING);
-	locked = video_output_lock_frame(video->video, &recording_output_frame, count,
-		recording_input_frame->timestamp, OBS_RECORDING_VIDEO_RENDERING);
+	if (!obs_get_multiple_rendering()) {
+		locked = video_output_lock_frame(video->video, &main_output_frame, count,
+			main_input_frame->timestamp, OBS_MAIN_VIDEO_RENDERING);
+	}
+	else {
+		locked = video_output_lock_frame(video->video, &streaming_output_frame, count,
+			streaming_input_frame->timestamp, OBS_STREAMING_VIDEO_RENDERING);
+		locked = video_output_lock_frame(video->video, &recording_output_frame, count,
+			recording_input_frame->timestamp, OBS_RECORDING_VIDEO_RENDERING);
+	}
 	if (locked) {
-		if (video->gpu_conversion) {
-			set_gpu_converted_data(video, &streaming_output_frame,
+		if (!obs_get_multiple_rendering()) {
+			if (video->gpu_conversion) {
+				set_gpu_converted_data(video, &main_output_frame,
+					main_input_frame, info);
+
+			}
+			else if (format_is_yuv(info->format)) {
+				convert_frame(&main_output_frame, main_input_frame, info);
+			}
+			else {
+				copy_rgbx_frame(&main_output_frame, main_input_frame, info);
+			}
+		}
+		else {
+			if (video->gpu_conversion) {
+				set_gpu_converted_data(video, &streaming_output_frame,
 					streaming_input_frame, info);
-			set_gpu_converted_data(video, &recording_output_frame,
+				set_gpu_converted_data(video, &recording_output_frame,
 					recording_input_frame, info);
 
-		} else if (format_is_yuv(info->format)) {
-			convert_frame(&streaming_output_frame, streaming_input_frame, info);
-			convert_frame(&recording_output_frame, recording_input_frame, info);
-		} else {
-			copy_rgbx_frame(&streaming_output_frame, streaming_input_frame, info);
-			copy_rgbx_frame(&recording_output_frame, recording_input_frame, info);
+			}
+			else if (format_is_yuv(info->format)) {
+				convert_frame(&streaming_output_frame, streaming_input_frame, info);
+				convert_frame(&recording_output_frame, recording_input_frame, info);
+			}
+			else {
+				copy_rgbx_frame(&streaming_output_frame, streaming_input_frame, info);
+				copy_rgbx_frame(&recording_output_frame, recording_input_frame, info);
+			}
 		}
+
 
 		video_output_unlock_frame(video->video);
 	}
@@ -785,11 +854,13 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 	struct obs_core_video *video = &obs->video;
 	int cur_texture  = video->cur_texture;
 	int prev_texture = cur_texture == 0 ? NUM_TEXTURES-1 : cur_texture-1;
+	struct video_data main_frame;
 	struct video_data streaming_frame;
 	struct video_data recording_frame;
 	bool active = raw_active || gpu_active;
 	bool frame_ready;
 
+	memset(&main_frame, 0, sizeof(struct video_data));
 	memset(&streaming_frame, 0, sizeof(struct video_data));
 	memset(&recording_frame, 0, sizeof(struct video_data));
 
@@ -802,8 +873,16 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 
 	if (raw_active) {
 		profile_start(output_frame_download_frame_name);
-		frame_ready = download_frame(video, prev_texture, &streaming_frame, OBS_STREAMING_VIDEO_RENDERING);
-		frame_ready = download_frame(video, prev_texture, &recording_frame, OBS_RECORDING_VIDEO_RENDERING);
+		if (!obs_get_multiple_rendering()) {
+			frame_ready = download_frame(
+				video, prev_texture, &main_frame, OBS_MAIN_VIDEO_RENDERING);
+		}
+		else {
+			frame_ready = download_frame(
+				video, prev_texture, &streaming_frame, OBS_STREAMING_VIDEO_RENDERING);
+			frame_ready = download_frame(
+				video, prev_texture, &recording_frame, OBS_RECORDING_VIDEO_RENDERING);
+		}
 		profile_end(output_frame_download_frame_name);
 	}
 
@@ -819,10 +898,15 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 		circlebuf_pop_front(&video->vframe_info_buffer, &vframe_info,
 				sizeof(vframe_info));
 
-		streaming_frame.timestamp = vframe_info.timestamp;
-		recording_frame.timestamp = vframe_info.timestamp;
+		if (!obs_get_multiple_rendering()) {
+			main_frame.timestamp = vframe_info.timestamp;
+		}
+		else {
+			streaming_frame.timestamp = vframe_info.timestamp;
+			recording_frame.timestamp = vframe_info.timestamp;
+		}
 		profile_start(output_frame_output_video_data_name);
-		output_video_data(video, &streaming_frame, &recording_frame, vframe_info.count);
+		output_video_data(video, &main_frame, &streaming_frame, &recording_frame, vframe_info.count);
 		profile_end(output_frame_output_video_data_name);
 	}
 
