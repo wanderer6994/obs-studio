@@ -460,13 +460,19 @@ end:
 static void get_nb_frames(void *data, calldata_t *cd)
 {
 	struct ffmpeg_source *s = data;
+	struct file_info fi = {
+		.frames = 0,
+		.width = 0,
+		.height = 0,
+		.pix_format = 0
+	};
 
 	if (!s->media.fmt) {
 		goto end;
 	}
 
 	pthread_mutex_lock(&s->media.mutex);
-	struct file_info fi = file_info(s);
+	fi = file_info(s);
 	pthread_mutex_unlock(&s->media.mutex);
 
 end:
@@ -476,6 +482,12 @@ end:
 static void get_file_info(void *data, calldata_t *cd)
 {
 	struct ffmpeg_source *s = data;
+	struct file_info fi = {
+		.frames = 0,
+		.width = 0,
+		.height = 0,
+		.pix_format = 0
+	};
 
 	if (!s->media.fmt) {
 		goto end;
@@ -485,10 +497,10 @@ static void get_file_info(void *data, calldata_t *cd)
 
 	if (s->media.stopping || !s->media.active) {
 		pthread_mutex_unlock(&s->media.mutex);
-		return;
+		goto end;
 	}
 
-	struct file_info fi = file_info(s);
+	fi = file_info(s);
 
 	pthread_mutex_unlock(&s->media.mutex);
 
