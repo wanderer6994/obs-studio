@@ -157,7 +157,7 @@ if(NOT INSTALLER_RUN)
 			list(APPEND CMAKE_PREFIX_PATH "$ENV{QTDIR${_lib_suffix}}")
 		elseif(DEFINED ENV{QTDIR})
 			list(APPEND CMAKE_PREFIX_PATH "$ENV{QTDIR}")
-		endif()
+		endif() 
 
 		find_package(Qt5Widgets ${FIND_MODE})
 	endif()
