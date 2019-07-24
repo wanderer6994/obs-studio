@@ -2,6 +2,7 @@ trigger:
   branches:
     include:
       - streamlabs-23.1.0
+      - test-tag-branch
   tags:
     include:
       - 'refs/tags/23.1.0-streamlabs-v*'
