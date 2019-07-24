@@ -4,7 +4,7 @@ trigger:
       - streamlabs-23.1.0
   tags:
     include:
-      - 23.1.0-streamlabs-v*
+      - 'refs/tags/23.1.0-streamlabs-v*'
 
 workspace:
   clean: all
