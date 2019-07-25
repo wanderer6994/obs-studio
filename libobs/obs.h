@@ -1447,10 +1447,10 @@ EXPORT void obs_sceneitem_select(obs_sceneitem_t *item, bool select);
 EXPORT bool obs_sceneitem_selected(const obs_sceneitem_t *item);
 EXPORT bool obs_sceneitem_locked(const obs_sceneitem_t *item);
 EXPORT bool obs_sceneitem_set_locked(obs_sceneitem_t *item, bool lock);
-EXPORT bool obs_sceneitem_showing_streaming(const obs_sceneitem_t *item);
-EXPORT bool obs_sceneitem_set_showing_streaming(obs_sceneitem_t *item, bool showing_streaming);
-EXPORT bool obs_sceneitem_showing_recording(const obs_sceneitem_t *item);
-EXPORT bool obs_sceneitem_set_showing_recording(obs_sceneitem_t *item, bool showing_recording);
+EXPORT bool obs_sceneitem_stream_visible(const obs_sceneitem_t *item);
+EXPORT bool obs_sceneitem_set_stream_visible(obs_sceneitem_t *item, bool stream_visible);
+EXPORT bool obs_sceneitem_recording_visible(const obs_sceneitem_t *item);
+EXPORT bool obs_sceneitem_set_recording_visible(obs_sceneitem_t *item, bool recording_visible);
 
 /* Functions for getting/setting specific orientation of a scene item */
 EXPORT void obs_sceneitem_set_pos(obs_sceneitem_t *item, const struct vec2 *pos);
