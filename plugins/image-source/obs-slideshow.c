@@ -646,7 +646,7 @@ error:
 	return NULL;
 }
 
-static void ss_video_render(void *data, gs_effect_t *effect, bool custom)
+static void ss_video_render(void *data, gs_effect_t *effect)
 {
 	struct slideshow *ss = data;
 	obs_source_t *transition = get_transition(ss);

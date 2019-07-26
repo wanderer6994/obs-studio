@@ -537,7 +537,7 @@ static inline void render_item(struct obs_scene_item *item)
 
 			gs_blend_state_push();
 			gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
-			obs_source_video_render(item->source, false);
+			obs_source_video_render(item->source);
 			gs_blend_state_pop();
 			gs_texrender_end(item->item_render);
 		}
@@ -548,7 +548,7 @@ static inline void render_item(struct obs_scene_item *item)
 	if (item->item_render) {
 		render_item_texture(item);
 	} else {
-		obs_source_video_render(item->source, false);
+		obs_source_video_render(item->source);
 	}
 	gs_matrix_pop();
 }
@@ -613,7 +613,7 @@ static void update_transforms_and_prune_sources(obs_scene_t *scene,
 		resize_group(group_sceneitem);
 }
 
-static void scene_video_render(void *data, gs_effect_t *effect, bool custom)
+static void scene_video_render(void *data, gs_effect_t *effect)
 {
 	DARRAY(struct obs_scene_item*) remove_items;
 	struct obs_scene *scene = data;
@@ -633,9 +633,9 @@ static void scene_video_render(void *data, gs_effect_t *effect, bool custom)
 
 	item = scene->first_item;
 	while (item) {
-		if (!custom && item->user_visible)
+		if (item->user_visible)
 			render_item(item);
-		if (custom && item->user_visible && item->source->custom_rendering)
+		if (item->user_visible && item->source->custom_rendering)
 			render_item(item);
 
 		item = item->next;
