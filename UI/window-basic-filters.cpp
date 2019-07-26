@@ -557,7 +557,7 @@ void OBSBasicFilters::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 	gs_ortho(0.0f, float(sourceCX), 0.0f, float(sourceCY), -100.0f, 100.0f);
 	gs_set_viewport(x, y, newCX, newCY);
 
-	obs_source_video_render(window->source, false);
+	obs_source_video_render(window->source);
 
 	gs_projection_pop();
 	gs_viewport_pop();

@@ -1751,7 +1751,7 @@ static inline void obs_source_render_filters(obs_source_t *source)
 	pthread_mutex_unlock(&source->filter_mutex);
 
 	source->rendering_filter = true;
-	obs_source_video_render(first_filter, false);
+	obs_source_video_render(first_filter);
 	source->rendering_filter = false;
 
 	obs_source_release(first_filter);
@@ -1767,13 +1767,13 @@ void obs_source_default_render(obs_source_t *source)
 	for (i = 0; i < passes; i++) {
 		gs_technique_begin_pass(tech, i);
 		if (source->context.data)
-			source->info.video_render(source->context.data, effect, false);
+			source->info.video_render(source->context.data, effect);
 		gs_technique_end_pass(tech);
 	}
 	gs_technique_end(tech);
 }
 
-static inline void obs_source_main_render(obs_source_t *source, bool custom)
+static inline void obs_source_main_render(obs_source_t *source)
 {
 	uint32_t flags      = source->info.output_flags;
 	bool custom_draw    = (flags & OBS_SOURCE_CUSTOM_DRAW) != 0;
@@ -1785,12 +1785,12 @@ static inline void obs_source_main_render(obs_source_t *source, bool custom)
 		obs_source_default_render(source);
 	else if (source->context.data)
 		source->info.video_render(source->context.data,
-				custom_draw ? NULL : gs_get_effect(), custom);
+				custom_draw ? NULL : gs_get_effect());
 }
 
 static bool ready_async_frame(obs_source_t *source, uint64_t sys_time);
 
-static inline void render_video(obs_source_t *source, bool custom)
+static inline void render_video(obs_source_t *source)
 {
 	if (source->info.type != OBS_SOURCE_TYPE_FILTER &&
 	    (source->info.output_flags & OBS_SOURCE_VIDEO) == 0) {
@@ -1817,10 +1817,10 @@ static inline void render_video(obs_source_t *source, bool custom)
 		obs_source_render_filters(source);
 
 	else if (source->info.video_render)
-		obs_source_main_render(source, custom);
+		obs_source_main_render(source);
 
 	else if (source->filter_target)
-		obs_source_video_render(source->filter_target, custom);
+		obs_source_video_render(source->filter_target);
 
 	else if (deinterlacing_enabled(source))
 		deinterlace_render(source);
@@ -1829,13 +1829,13 @@ static inline void render_video(obs_source_t *source, bool custom)
 		obs_source_render_async_video(source);
 }
 
-void obs_source_video_render(obs_source_t *source, bool custom)
+void obs_source_video_render(obs_source_t *source)
 {
 	if (!obs_source_valid(source, "obs_source_video_render"))
 		return;
 
 	obs_source_addref(source);
-	render_video(source, custom);
+	render_video(source);
 	obs_source_release(source);
 }
 
@@ -2928,7 +2928,7 @@ static inline void render_filter_bypass(obs_source_t *target,
 	passes = gs_technique_begin(tech);
 	for (i = 0; i < passes; i++) {
 		gs_technique_begin_pass(tech, i);
-		obs_source_video_render(target, false);
+		obs_source_video_render(target);
 		gs_technique_end_pass(tech);
 	}
 	gs_technique_end(tech);
@@ -3025,7 +3025,7 @@ bool obs_source_process_filter_begin(obs_source_t *filter,
 		if (target == parent && !custom_draw && !async)
 			obs_source_default_render(target);
 		else
-			obs_source_video_render(target, false);
+			obs_source_video_render(target);
 
 		gs_texrender_end(filter->filter_texrender);
 	}
@@ -3109,14 +3109,14 @@ void obs_source_skip_video_filter(obs_source_t *filter)
 		if (!custom_draw && !async)
 			obs_source_default_render(target);
 		else if (target->info.video_render)
-			obs_source_main_render(target, false);
+			obs_source_main_render(target);
 		else if (deinterlacing_enabled(target))
 			deinterlace_render(target);
 		else
 			obs_source_render_async_video(target);
 
 	} else {
-		obs_source_video_render(target, false);
+		obs_source_video_render(target);
 	}
 }
 

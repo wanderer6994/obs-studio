@@ -323,7 +323,7 @@ static void *color_correction_filter_create(obs_data_t *settings,
 }
 
 /* This is where the actual rendering of the filter takes place. */
-static void color_correction_filter_render(void *data, gs_effect_t *effect, bool custom)
+static void color_correction_filter_render(void *data, gs_effect_t *effect)
 {
 	struct color_correction_filter_data *filter = data;
 
