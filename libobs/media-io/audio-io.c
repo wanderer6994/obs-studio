@@ -26,6 +26,7 @@
 
 #include "audio-io.h"
 #include "audio-resampler.h"
+#include "obs.h"
 
 extern profiler_name_store_t *obs_get_profiler_name_store(void);
 

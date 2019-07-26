@@ -1498,26 +1498,26 @@ static void default_encoded_callback(void *param, struct encoder_packet *packet)
 		obs_encoder_packet_release(packet);
 }
 
-static void default_raw_video_callback(void *param, struct video_data *frame)
+static void default_raw_video_callback(void *param, struct video_data *streaming_frame, struct video_data *recording_frame)
 {
 	struct obs_output *output = param;
 	if (data_active(output))
-		output->info.raw_video(output->context.data, frame);
+		output->info.raw_video(output->context.data, streaming_frame);
 	output->total_frames++;
 }
 
 
 static void default_raw_audio_callback(void *param, size_t mix_idx,
-		struct audio_data *frames)
+		struct audio_data *streaming_data, struct audio_data *recording_data)
 {
 	struct obs_output *output = param;
 	if (!data_active(output))
 		return;
 
 	if (output->info.raw_audio2)
-		output->info.raw_audio2(output->context.data, mix_idx, frames);
+		output->info.raw_audio2(output->context.data, mix_idx, streaming_data);
 	else
-		output->info.raw_audio(output->context.data, frames);
+		output->info.raw_audio(output->context.data, streaming_data);
 }
 
 static inline void start_audio_encoders(struct obs_output *output,

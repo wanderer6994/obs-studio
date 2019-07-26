@@ -87,7 +87,9 @@ struct audio_output_data {
 
 typedef bool (*audio_input_callback_t)(void *param,
 		uint64_t start_ts, uint64_t end_ts, uint64_t *new_ts,
-		uint32_t active_mixers, struct audio_output_data *mixes);
+		uint32_t active_mixers, struct audio_output_data *main_data,
+		struct audio_output_data *streaming_data,
+		struct audio_output_data *recording_data);
 
 struct audio_output_info {
 	const char          *name;

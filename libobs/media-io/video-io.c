@@ -329,7 +329,7 @@ void video_output_close(video_t *video)
 }
 
 static size_t video_get_input_idx(const video_t *video,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param)
 {
 	for (size_t i = 0; i < video->inputs.num; i++) {
@@ -387,7 +387,7 @@ static inline void reset_frames(video_t *video)
 
 bool video_output_connect(video_t *video,
 		const struct video_scale_info *conversion,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param)
 {
 	bool success = false;
@@ -453,7 +453,7 @@ static void log_skipped(video_t *video)
 }
 
 void video_output_disconnect(video_t *video,
-		void (*callback)(void *param, struct video_data *frame),
+		void (*callback)(void *param, struct video_data *streaming_frame, struct video_data *recording_frame),
 		void *param)
 {
 	if (!video || !callback)
@@ -489,7 +489,7 @@ const struct video_output_info *video_output_get_info(const video_t *video)
 }
 
 bool video_output_lock_frame(video_t *video, struct video_frame *frame,
-		int count, uint64_t timestamp, enum obs_rendering_mode mode)
+		int count, uint64_t timestamp, enum obs_video_rendering_mode mode)
 {
 	struct cached_frame_info *g_cfi;
 	struct cached_frame_info *cfi;
@@ -498,11 +498,11 @@ bool video_output_lock_frame(video_t *video, struct video_frame *frame,
 	if (!video) return false;
 
 	if (mode == OBS_STREAMING_VIDEO_RENDERING)
-		g_cfi = &video->streaming_cache;
+		g_cfi = video->streaming_cache;
 	else if (mode == OBS_RECORDING_VIDEO_RENDERING)
-		g_cfi = &video->recording_cache;
+		g_cfi = video->recording_cache;
 	else
-		g_cfi = &video->main_cache;
+		g_cfi = video->main_cache;
 
 	pthread_mutex_lock(&video->data_mutex);
 
