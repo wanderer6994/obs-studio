@@ -86,7 +86,7 @@ static void *gpu_encode_thread(void *unused)
 					stream_encoded = true;
 				}
 				else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
-					strcmp(output->info.id, "replay_buffer")) {
+					strcmp(output->info.id, "replay_buffer") == 0) {
 					mode = OBS_RECORDING_VIDEO_RENDERING;
 					record_encoded = true;
 				}

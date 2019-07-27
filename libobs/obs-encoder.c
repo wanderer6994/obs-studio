@@ -918,7 +918,7 @@ static void receive_video(void *param, struct video_data *streaming_frame, struc
 	if (strcmp(output->info.id, "rtmp_output") == 0)
 		frame = streaming_frame;
 	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
-			strcmp(output->info.id, "replay_buffer"))
+			strcmp(output->info.id, "replay_buffer") == 0)
 		frame = recording_frame;
 	else
 		goto wait_for_audio;
@@ -1091,7 +1091,7 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *stream
 	if (strcmp(output->info.id, "rtmp_output") == 0)
 		data = streaming_data;
 	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
-		strcmp(output->info.id, "replay_buffer"))
+		strcmp(output->info.id, "replay_buffer") == 0)
 		data = recording_data;
 	else
 		goto end;
