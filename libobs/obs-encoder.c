@@ -915,13 +915,28 @@ static void receive_video(void *param, struct video_data *streaming_frame, struc
 	cb = encoder->callbacks.array;
 	struct obs_output *output = cb->param;
 
-	if (strcmp(output->info.id, "rtmp_output") == 0)
+	if (!obs_get_multiple_rendering()) {
 		frame = streaming_frame;
-	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
-			strcmp(output->info.id, "replay_buffer") == 0)
-		frame = recording_frame;
-	else
-		goto wait_for_audio;
+	}
+	else {
+		if (strcmp(output->info.id, "rtmp_output") == 0)
+			frame = streaming_frame;
+		else if (strcmp(output->info.id, "ffmpeg_muxer") == 0)
+			frame = recording_frame;
+		else if (strcmp(output->info.id, "replay_buffer") == 0) {
+			if (obs_get_replay_buffer_rendering_mode() ==
+					OBS_STREAMING_REPLAY_BUFFER_RENDERING)
+				frame = streaming_frame;
+			else if (obs_get_replay_buffer_rendering_mode() ==
+					OBS_RECORDING_REPLAY_BUFFER_RENDERING)
+				frame = recording_frame;
+			else
+				frame = streaming_frame;
+		}
+		else
+			goto wait_for_audio;
+	}
+
 
 	if (!encoder->first_received && pair) {
 		if (!pair->first_received ||
@@ -1088,13 +1103,27 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *stream
 	cb = encoder->callbacks.array;
 	struct obs_output *output = cb->param;
 
-	if (strcmp(output->info.id, "rtmp_output") == 0)
+	if (!obs_get_multiple_rendering()) {
 		data = streaming_data;
-	else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
-		strcmp(output->info.id, "replay_buffer") == 0)
-		data = recording_data;
-	else
-		goto end;
+	}
+	else {
+		if (strcmp(output->info.id, "rtmp_output") == 0)
+			data = streaming_data;
+		else if (strcmp(output->info.id, "ffmpeg_muxer") == 0)
+			data = recording_data;
+		else if (strcmp(output->info.id, "replay_buffer") == 0) {
+			if (obs_get_replay_buffer_rendering_mode() ==
+					OBS_STREAMING_REPLAY_BUFFER_RENDERING)
+				data = streaming_data;
+			else if (obs_get_replay_buffer_rendering_mode() ==
+					OBS_RECORDING_REPLAY_BUFFER_RENDERING)
+				data = recording_data;
+			else
+				data = streaming_data;
+		}
+		else
+			goto end;
+	}
 
 	if (!encoder->first_received) {
 		encoder->first_raw_ts = data->timestamp;

@@ -85,10 +85,25 @@ static void *gpu_encode_thread(void *unused)
 					mode = OBS_STREAMING_VIDEO_RENDERING;
 					stream_encoded = true;
 				}
-				else if (strcmp(output->info.id, "ffmpeg_muxer") == 0 ||
-					strcmp(output->info.id, "replay_buffer") == 0) {
+				else if (strcmp(output->info.id, "ffmpeg_muxer") == 0) {
 					mode = OBS_RECORDING_VIDEO_RENDERING;
 					record_encoded = true;
+				}
+				else if (strcmp(output->info.id, "replay_buffer") == 0) {
+					if (obs_get_replay_buffer_rendering_mode() ==
+							OBS_STREAMING_REPLAY_BUFFER_RENDERING) {
+						mode = OBS_STREAMING_VIDEO_RENDERING;
+						stream_encoded = true;
+					}
+					else if (obs_get_replay_buffer_rendering_mode() ==
+							OBS_RECORDING_REPLAY_BUFFER_RENDERING) {
+						mode = OBS_RECORDING_VIDEO_RENDERING;
+						record_encoded = true;
+					}
+					else {
+						mode = OBS_STREAMING_VIDEO_RENDERING;
+						stream_encoded = true;
+					}
 				}
 			}
 			circlebuf_pop_front(

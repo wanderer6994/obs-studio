@@ -147,6 +147,11 @@ enum obs_video_rendering_mode {
 	OBS_RECORDING_VIDEO_RENDERING,
 };
 
+enum obs_replay_buffer_rendering_mode {
+	OBS_STREAMING_REPLAY_BUFFER_RENDERING,
+	OBS_RECORDING_REPLAY_BUFFER_RENDERING,
+};
+
 struct obs_transform_info {
 	struct vec2          pos;
 	float                rot;
@@ -666,6 +671,12 @@ EXPORT void obs_set_audio_rendering_mode(enum obs_audio_rendering_mode mode);
 
 /** Gets current audio rendering mode */
 EXPORT enum obs_audio_rendering_mode obs_get_audio_rendering_mode(void);
+
+/** Set the replay buffer rendering mode*/
+EXPORT void obs_set_replay_buffer_rendering_mode(enum obs_replay_buffer_rendering_mode mode);
+
+/** Get current replay buffer rendering mode*/
+EXPORT enum obs_replay_buffer_rendering_mode obs_get_replay_buffer_rendering_mode(void);
 
 /** Returns the last main output texture.  This can return NULL if the texture
  * is unavailable. */

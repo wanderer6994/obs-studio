@@ -852,7 +852,8 @@ static bool obs_init(const char *locale, const char *module_config_path,
 	obs_register_source(&scene_info);
 	obs_register_source(&group_info);
 	add_default_module_paths();
-	obs->multiple_rendering   = false;
+	obs->multiple_rendering   = true;
+	obs->replay_buffer_rendering_mode = OBS_RECORDING_REPLAY_BUFFER_RENDERING;
 	obs->video_rendering_mode = OBS_MAIN_VIDEO_RENDERING;
 	obs->audio_rendering_mode = OBS_MAIN_AUDIO_RENDERING;
 	return true;
@@ -1761,6 +1762,21 @@ enum obs_audio_rendering_mode obs_get_audio_rendering_mode(void)
 		return OBS_MAIN_AUDIO_RENDERING;
 	else
 		return obs->audio_rendering_mode;
+}
+
+void obs_set_replay_buffer_rendering_mode(enum obs_replay_buffer_rendering_mode mode)
+{
+	if (!obs) return;
+
+	obs->replay_buffer_rendering_mode = mode;
+}
+
+enum obs_replay_buffer_rendering_mode obs_get_replay_buffer_rendering_mode(void)
+{
+	if (!obs)
+		return OBS_STREAMING_REPLAY_BUFFER_RENDERING;
+	else
+		return obs->replay_buffer_rendering_mode;
 }
 
 gs_texture_t *obs_get_main_texture(void)
