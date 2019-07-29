@@ -852,7 +852,7 @@ static bool obs_init(const char *locale, const char *module_config_path,
 	obs_register_source(&scene_info);
 	obs_register_source(&group_info);
 	add_default_module_paths();
-	obs->multiple_rendering   = true;
+	obs->multiple_rendering   = false;
 	obs->replay_buffer_rendering_mode = OBS_RECORDING_REPLAY_BUFFER_RENDERING;
 	obs->video_rendering_mode = OBS_MAIN_VIDEO_RENDERING;
 	obs->audio_rendering_mode = OBS_MAIN_AUDIO_RENDERING;
