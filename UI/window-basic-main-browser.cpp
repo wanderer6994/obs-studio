@@ -73,7 +73,7 @@ static void InitPanelCookieManager()
 	sub_path += "obs_profile_cookies/";
 	sub_path += cookie_id;
 
-	//panel_cookies = cef->create_cookie_manager(sub_path);
+	panel_cookies = cef->create_cookie_manager(sub_path);
 }
 #endif
 
