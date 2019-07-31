@@ -50,6 +50,12 @@ static void *gpu_encode_thread(void *unused)
 
 		pthread_mutex_lock(&video->gpu_encoder_mutex);
 
+		if (!obs_get_multiple_rendering()) {
+			circlebuf_pop_front(
+				&video->gpu_queues[OBS_MAIN_VIDEO_RENDERING].gpu_encoder_queue,
+				&tf, sizeof(tf));
+		}
+
 		video_output_inc_texture_frames(video->video);
 
 		for (size_t i = 0; i < video->gpu_encoders.num; i++) {
@@ -91,11 +97,6 @@ static void *gpu_encode_thread(void *unused)
 				}
 				else if (strcmp(output->info.id, "replay_buffer") == 0) {
 					if (obs_get_replay_buffer_rendering_mode() ==
-							OBS_STREAMING_REPLAY_BUFFER_RENDERING) {
-						mode = OBS_STREAMING_VIDEO_RENDERING;
-						stream_encoded = true;
-					}
-					else if (obs_get_replay_buffer_rendering_mode() ==
 							OBS_RECORDING_REPLAY_BUFFER_RENDERING) {
 						mode = OBS_RECORDING_VIDEO_RENDERING;
 						record_encoded = true;
@@ -105,10 +106,10 @@ static void *gpu_encode_thread(void *unused)
 						stream_encoded = true;
 					}
 				}
+				circlebuf_pop_front(
+					&video->gpu_queues[mode].gpu_encoder_queue,
+					&tf, sizeof(tf));
 			}
-			circlebuf_pop_front(
-				&video->gpu_queues[mode].gpu_encoder_queue,
-				&tf, sizeof(tf));
 
 			timestamp = tf.timestamp;
 			lock_key = tf.lock_key;
@@ -146,22 +147,23 @@ static void *gpu_encode_thread(void *unused)
 
 			encoder->cur_pts += encoder->timebase_num;
 
-
 			/* -------------- */
 
 			pthread_mutex_lock(&video->gpu_encoder_mutex);
 
 			tf.lock_key = next_key;
 
-			if (--tf.count) {
-				tf.timestamp += interval;
-				circlebuf_push_front(&video->gpu_queues[mode].gpu_encoder_queue,
-					&tf, sizeof(tf));
-			}
-			else {
-				circlebuf_push_back(
-					&video->gpu_queues[mode].gpu_encoder_avail_queue,
-					&tf, sizeof(tf));
+			if (obs_get_multiple_rendering()) {
+				if (--tf.count) {
+					tf.timestamp += interval;
+					circlebuf_push_front(&video->gpu_queues[mode].gpu_encoder_queue,
+						&tf, sizeof(tf));
+				}
+				else {
+					circlebuf_push_back(
+						&video->gpu_queues[mode].gpu_encoder_avail_queue,
+						&tf, sizeof(tf));
+				}
 			}
 
 			pthread_mutex_unlock(&video->gpu_encoder_mutex);
@@ -192,12 +194,24 @@ static void *gpu_encode_thread(void *unused)
 					&new_frame, sizeof(new_frame));
 			}
 		}
-
-		pthread_mutex_unlock(&video->gpu_encoder_mutex);
+		else {
+			if (--tf.count) {
+				tf.timestamp += interval;
+				circlebuf_push_front(&video->gpu_queues[OBS_MAIN_VIDEO_RENDERING].gpu_encoder_queue,
+					&tf, sizeof(tf));
+			}
+			else {
+				circlebuf_push_back(
+					&video->gpu_queues[OBS_MAIN_VIDEO_RENDERING].gpu_encoder_avail_queue,
+					&tf, sizeof(tf));
+			}
+		}
 
 		if (--tf.count) {
 			video_output_inc_texture_skipped_frames(video->video);
 		}
+
+		pthread_mutex_unlock(&video->gpu_encoder_mutex);
 
 		os_event_signal(video->gpu_encode_inactive);
 
