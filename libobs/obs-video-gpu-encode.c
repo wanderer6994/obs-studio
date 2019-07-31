@@ -158,6 +158,7 @@ static void *gpu_encode_thread(void *unused)
 					tf.timestamp += interval;
 					circlebuf_push_front(&video->gpu_queues[mode].gpu_encoder_queue,
 						&tf, sizeof(tf));
+					video_output_inc_texture_skipped_frames(video->video);
 				}
 				else {
 					circlebuf_push_back(
@@ -199,16 +200,13 @@ static void *gpu_encode_thread(void *unused)
 				tf.timestamp += interval;
 				circlebuf_push_front(&video->gpu_queues[OBS_MAIN_VIDEO_RENDERING].gpu_encoder_queue,
 					&tf, sizeof(tf));
+				video_output_inc_texture_skipped_frames(video->video);
 			}
 			else {
 				circlebuf_push_back(
 					&video->gpu_queues[OBS_MAIN_VIDEO_RENDERING].gpu_encoder_avail_queue,
 					&tf, sizeof(tf));
 			}
-		}
-
-		if (--tf.count) {
-			video_output_inc_texture_skipped_frames(video->video);
 		}
 
 		pthread_mutex_unlock(&video->gpu_encoder_mutex);
