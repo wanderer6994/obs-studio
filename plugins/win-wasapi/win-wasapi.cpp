@@ -7,6 +7,9 @@
 #include <util/windows/WinHandle.hpp>
 #include <util/windows/CoTaskMemPtr.hpp>
 #include <util/threading.h>
+#include <audiopolicy.h>
+#include <atlbase.h>
+#include <psapi.h>
 
 using namespace std;
 
@@ -282,6 +285,60 @@ void WASAPISource::InitRender()
 			BUFFER_TIME_100NS, 0, wfex, nullptr);
 	if (FAILED(res))
 		throw HRError("Failed to get initialize audio client", res);
+
+	/* ----------------------- */
+
+	ComPtr<IAudioSessionManager2>   sessionManager2;
+	ComPtr<IAudioSessionEnumerator> sessionEnum;
+	int sessionCount = 0;
+
+	res = device->Activate(__uuidof(IAudioSessionManager2),
+		CLSCTX_ALL, nullptr,
+		(void **)&sessionManager2);
+
+	if (FAILED(res))
+		throw HRError("Failed to get initialize audio client", res);
+
+	res = sessionManager2->GetSessionEnumerator(&sessionEnum);
+
+	if (FAILED(res))
+		throw HRError("Failed to get initialize audio client", res);
+
+	res = sessionEnum->GetCount(&sessionCount);
+
+	if (FAILED(res))
+		throw HRError("Failed to get initialize audio client", res);
+
+	for (uint32_t i = 0; i < sessionCount; i++) {
+		ComPtr<IAudioSessionControl> session;
+		res = sessionEnum->GetSession(i, &session);
+		if (res == S_OK) {
+			CComPtr<IAudioSessionControl2> pAudioSessionControl2;
+			res = session->QueryInterface(IID_PPV_ARGS(&pAudioSessionControl2));
+
+			DWORD pid = 0;
+			res = pAudioSessionControl2->GetProcessId(&pid);
+
+			HANDLE hdl = OpenProcess(
+				PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+				FALSE,
+				pid
+			);
+
+			if (hdl) {
+				TCHAR Buffer[MAX_PATH];
+				if (GetModuleFileNameEx(hdl, 0, Buffer, MAX_PATH))
+					blog(LOG_INFO, "Audio session name : %ls", Buffer);
+				CloseHandle(hdl);
+			}
+
+			//pAudioSessionControl2->
+
+		}
+	}
+
+	/* ----------------------- */
+
 
 	/* Silent loopback fix. Prevents audio stream from stopping and */
 	/* messing up timestamps and other weird glitches during silence */
