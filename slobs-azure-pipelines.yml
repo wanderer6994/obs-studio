@@ -34,7 +34,7 @@ variables:
   CefDirName: cef_binary_$(CefVersion)_windows64
   CefPath: $(Build.SourcesDirectory)\$(CefDirName)
   CefBuildPath: $(CefPath)\build
-  CefZip: $(CefDirName).zip
+  CefZip: $(CefDirName).tar.bz2
   CefUrl: https://s3-us-west-2.amazonaws.com/streamlabs-cef-dist/$(CefZip)
   DependenciesUrl: https://obsproject.com/downloads/dependencies2017.zip
   VLCLibPath: $(Build.SourcesDirectory)\vlc
