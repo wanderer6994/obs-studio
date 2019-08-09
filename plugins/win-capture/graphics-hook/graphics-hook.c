@@ -773,8 +773,7 @@ void capture_free(void)
 	}
 
 	close_handle(&shmem_file_handle);
-
-	SetEvent(signal_restart);
+	
 	active = false;
 }
 
