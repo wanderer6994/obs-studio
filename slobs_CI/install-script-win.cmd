@@ -5,7 +5,7 @@ set CMakeGenerator=Visual Studio 15 2017
 
 if exist dependencies2017.zip (curl -kLO %DepsURL% -f --retry 5 -z dependencies2017.zip) else (curl -kLO %DepsURL% -f --retry 5 -C -)
 if exist vlc.zip (curl -kLO %VLCURL% -f --retry 5 -z vlc.zip) else (curl -kLO %VLCURL% -f --retry 5 -C -)
-if exist cef_binary_%CEF_VERSION%_windows64.zip (curl -kLO https://s3-us-west-2.amazonaws.com/streamlabs-cef-dist/cef_binary_3.3578.1859.g3563564_windows64.zip -f --retry 5 -z cef_binary_%CEF_VERSION%_windows64.zip) else (curl -kLO https://s3-us-west-2.amazonaws.com/streamlabs-cef-dist/cef_binary_3.3578.1859.g3563564_windows64.zip -f --retry 5 -C -)
+if exist cef_binary_%CEF_VERSION%_windows64.zip (curl -kLO %CEFURL%/cef_binary_%CEF_VERSION%_windows64.zip -f --retry 5 -z cef_binary_%CEF_VERSION%_windows64.zip) else (curl -kLO %CEFURL%/cef_binary_%CEF_VERSION%_windows64.zip -f --retry 5 -C -)
 
 mkdir build
 

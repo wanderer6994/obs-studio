@@ -38,7 +38,7 @@ steps:
 - script: git submodule update --init --recursive --jobs 2
   displayName: 'Checkout Submodules'
 
-- script: ./CI/install-script-win.cmd
+- script: ./slobs_CI/install-script-win.cmd
   displayName: 'Configure / Build'
   
 - task: ArchiveFiles@2
