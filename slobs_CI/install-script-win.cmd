@@ -19,7 +19,7 @@ cmake -G"%CMakeGenerator%" -A x64 -H%CEFPATH% -B%CEFPATH%\build -DCEF_RUNTIME_LI
 cmake --build %CEFPATH%\build --config %CefBuildConfig% --target libcef_dll_wrapper -v
 
 cmake -H. ^
-         -Bbuild ^
+         -B%CD%\build ^
          -G"%CmakeGenerator%" ^
          -A x64 ^
          -DCMAKE_INSTALL_PREFIX=%CD%\%InstallPath% ^
