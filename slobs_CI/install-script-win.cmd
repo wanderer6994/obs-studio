@@ -25,7 +25,7 @@ cmake -H. ^
          -DCMAKE_INSTALL_PREFIX="%InstallPath%" ^
          -DDepsPath=%CD%\dependencies2017\win64 ^
          -DVLCPath=%CD%\vlc ^
-         -DCEF_ROOT_DIR=%CD%\CEF_64\cef_binary_%CEF_VERSION%_windows64 ^
+         -DCEF_ROOT_DIR=%CEFPATH% ^
          -DENABLE_UI=false ^
          -DCOPIED_DEPENDENCIES=false ^
          -DCOPY_DEPENDENCIES=true ^
