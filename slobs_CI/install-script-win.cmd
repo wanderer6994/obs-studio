@@ -11,10 +11,12 @@ mkdir build
 
 7z x dependencies2017.zip -odependencies2017
 7z x vlc.zip -ovlc
-7z x cef_binary_%CEF_VERSION%_windows64.zip -oCEF_64
+7z x cef_binary_%CEF_VERSION%_windows64.zip -oCEF
 
-cmake -G"%CMakeGenerator%" -A x64 -H"%CD%\CEF_64" -B"%CD%\CEF_64\build" -DCEF_RUNTIME_LIBRARY_FLAG="/MD"
-cmake --build "%CD%\CEF_64\build" --config %CefBuildConfig% --target libcef_dll_wrapper -v
+set CEFPATH=%CD%\CEF\cef_binary_%CEF_VERSION%_windows64
+
+cmake -G"%CMakeGenerator%" -A x64 -H%CEFPATH% -B%CEFPATH%\build -DCEF_RUNTIME_LIBRARY_FLAG="/MD"
+cmake --build %CEFPATH%\build --config %CefBuildConfig% --target libcef_dll_wrapper -v
 
 cmake -H.
          -Bbuild
