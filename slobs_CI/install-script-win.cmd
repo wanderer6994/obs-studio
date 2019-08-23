@@ -18,24 +18,24 @@ set CEFPATH=%CD%\CEF\cef_binary_%CEF_VERSION%_windows64
 cmake -G"%CMakeGenerator%" -A x64 -H%CEFPATH% -B%CEFPATH%\build -DCEF_RUNTIME_LIBRARY_FLAG="/MD"
 cmake --build %CEFPATH%\build --config %CefBuildConfig% --target libcef_dll_wrapper -v
 
-cmake -H.
-         -Bbuild
-         -G"%CmakeGenerator%"
-         -A x64
-         -DCMAKE_INSTALL_PREFIX="%InstallPath%"
-         -DDepsPath=%CD%\dependencies2017\win64
-         -DVLCPath=%CD%\vlc
-         -DCEF_ROOT_DIR=%CD%\CEF_64\cef_binary_%CEF_VERSION%_windows64
-         -DENABLE_UI=false
-         -DCOPIED_DEPENDENCIES=false
-         -DCOPY_DEPENDENCIES=true
-         -DENABLE_SCRIPTING=false
-         -DBUILD_CAPTIONS=false
-         -DCOMPILE_D3D12_HOOK=true
-         -DBUILD_BROWSER=true
-         -DBROWSER_FRONTEND_API_SUPPORT=false
-         -DBROWSER_PANEL_SUPPORT=false
-         -DBROWSER_USE_STATIC_CRT=false
+cmake -H. ^
+         -Bbuild ^
+         -G"%CmakeGenerator%" ^
+         -A x64 ^
+         -DCMAKE_INSTALL_PREFIX="%InstallPath%" ^
+         -DDepsPath=%CD%\dependencies2017\win64 ^
+         -DVLCPath=%CD%\vlc ^
+         -DCEF_ROOT_DIR=%CD%\CEF_64\cef_binary_%CEF_VERSION%_windows64 ^
+         -DENABLE_UI=false ^
+         -DCOPIED_DEPENDENCIES=false ^
+         -DCOPY_DEPENDENCIES=true ^
+         -DENABLE_SCRIPTING=false ^
+         -DBUILD_CAPTIONS=false ^
+         -DCOMPILE_D3D12_HOOK=true ^
+         -DBUILD_BROWSER=true ^
+         -DBROWSER_FRONTEND_API_SUPPORT=false ^
+         -DBROWSER_PANEL_SUPPORT=false ^
+         -DBROWSER_USE_STATIC_CRT=false ^
          -DEXPERIMENTAL_SHARED_TEXTURE_SUPPORT=true'
 
 cmake --build build --target install --config %BuildConfig% -v'
