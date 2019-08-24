@@ -24,43 +24,43 @@ pool:
   name: 'Default'
 
 variables:
-  DepsPath32: $(Build.SourcesDirectory)\dependencies2017\win32
-  DepsPath64: $(Build.SourcesDirectory)\dependencies2017\win64
-  BuildPath32: $(Build.SourcesDirectory)\build32
-  BuildPath64: $(Build.SourcesDirectory)\build64
   InstallPath: packed_build
   CEF_VERSION: 3.3578.1859.g3563564
 
-steps:
-- powershell: 'Write-Host "##vso[task.setvariable variable=tag]$((git.exe describe --tags --abbrev=0) | Out-String)"'
-  displayName: 'Get tag for artifact'
+jobs:
+- job: 'Windows64'
+  pool:
+    vmImage: 'vs2017-win2016'
+  steps:
+  - powershell: 'Write-Host "##vso[task.setvariable variable=tag]$((git.exe describe --tags --abbrev=0) | Out-String)"'
+    displayName: 'Get tag for artifact'
 
-- script: git submodule update --init --recursive --jobs 2
-  displayName: 'Checkout Submodules'
+  - script: git submodule update --init --recursive --jobs 2
+    displayName: 'Checkout Submodules'
 
-- script: ./slobs_CI/install-script-win.cmd
-  displayName: 'Configure / Build'
-  
-- task: ArchiveFiles@2
-  inputs:
-    rootFolderOrFile: $(InstallPath)
-    includeRootFolder: true
-    archiveType: 7z
-    archiveFile: 'libobs-$(ReleaseName)-$(tag).7z'
-  displayName: 'Generate artifact'
+  - script: ./slobs_CI/install-script-win.cmd
+    displayName: 'Configure / Build'
+    
+  - task: ArchiveFiles@2
+    inputs:
+      rootFolderOrFile: $(InstallPath)
+      includeRootFolder: true
+      archiveType: 7z
+      archiveFile: 'libobs-$(ReleaseName)-$(tag).7z'
+    displayName: 'Generate artifact'
 
-- task: PublishBuildArtifacts@1
-  inputs: 
-    pathtoPublish: $(Build.SourcesDirectory)\libobs-$(ReleaseName)-$(tag).7z
-    artifactName: libobs-$(ReleaseName)-$(BuildNumber).7z
-  displayName: 'Publish artifact'
+  - task: PublishBuildArtifacts@1
+    inputs: 
+      pathtoPublish: $(Build.SourcesDirectory)\libobs-$(ReleaseName)-$(tag).7z
+      artifactName: libobs-$(ReleaseName)-$(BuildNumber).7z
+    displayName: 'Publish artifact'
 
-- task: S3Upload@1
-  inputs:
-    awsCredentials: 'Streamlabs AWS'
-    regionName: 'us-west-2'
-    bucketName: 'obsstudios3.streamlabs.com'
-    globExpressions: 'libobs-$(ReleaseName)-$(tag).7z'
-    filesAcl: 'public-read'
-  displayName: 'Upload artifact to S3'
-  condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'tags'))
+  - task: S3Upload@1
+    inputs:
+      awsCredentials: 'Streamlabs AWS'
+      regionName: 'us-west-2'
+      bucketName: 'obsstudios3.streamlabs.com'
+      globExpressions: 'libobs-$(ReleaseName)-$(tag).7z'
+      filesAcl: 'public-read'
+    displayName: 'Upload artifact to S3'
+    condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'tags'))
