@@ -65,7 +65,6 @@ jobs:
     displayName: 'Upload artifact to S3'
     condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'tags'))
 
-jobs:
 - job: 'MacOX'
   pool:
     vmImage: 'macos-10.13'
