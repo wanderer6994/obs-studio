@@ -38,4 +38,4 @@ cmake -H. ^
          -DBROWSER_USE_STATIC_CRT=false ^
          -DEXPERIMENTAL_SHARED_TEXTURE_SUPPORT=true
 
-cmake --build %CD%\build --target install --config %BuildConfig% -v'
+cmake --build %CD%\build --target install --config %BuildConfig% -v
