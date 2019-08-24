@@ -6,23 +6,6 @@ trigger:
     include:
       - 23.1.0-streamlabs-v*
 
-workspace:
-  clean: all
-
-strategy:
-  matrix:
-    Release:
-      CefBuildConfig: Release
-      BuildConfig: RelWithDebInfo
-      ReleaseName: release
-    Debug:
-      CefBuildConfig: Debug
-      BuildConfig: Debug
-      ReleaseName: debug
-
-pool:
-  name: 'Default'
-
 variables:
   InstallPath: packed_build
   CEF_VERSION: 3.3578.1859.g3563564
@@ -31,6 +14,20 @@ jobs:
 - job: 'Windows64'
   pool:
     vmImage: 'vs2017-win2016'
+  workspace:
+    clean: all
+
+  strategy:
+    matrix:
+      Release:
+        CefBuildConfig: Release
+        BuildConfig: RelWithDebInfo
+        ReleaseName: release
+      Debug:
+        CefBuildConfig: Debug
+        BuildConfig: Debug
+        ReleaseName: debug
+
   steps:
   - powershell: 'Write-Host "##vso[task.setvariable variable=tag]$((git.exe describe --tags --abbrev=0) | Out-String)"'
     displayName: 'Get tag for artifact'
