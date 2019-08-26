@@ -70,7 +70,7 @@ jobs:
   - script: git submodule update --init --recursive --jobs 2
     displayName: 'Checkout Submodules'
     
-  - script: ls ./slobs_CI/ -l
+  - script: ls -l ./slobs_CI
     displayName: 'Show permissions'
 
   - script: ./slobs_CI/install-script-osx.sh
