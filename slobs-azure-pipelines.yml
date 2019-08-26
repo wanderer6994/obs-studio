@@ -43,12 +43,12 @@ jobs:
       rootFolderOrFile: $(InstallPath)
       includeRootFolder: true
       archiveType: 7z
-      archiveFile: 'windows64-libobs-$(ReleaseName)-$(tag).7z'
+      archiveFile: 'libobs-windows64-$(ReleaseName)-$(tag).7z'
     displayName: 'Generate artifact'
 
   - task: PublishBuildArtifacts@1
     inputs: 
-      pathtoPublish: windows64-libobs-$(ReleaseName)-$(tag).7z
+      pathtoPublish: libobs-windows64-$(ReleaseName)-$(tag).7z
       artifactName: libobs-$(ReleaseName)-$(BuildNumber).7z
     displayName: 'Publish artifact'
 
@@ -57,7 +57,7 @@ jobs:
       awsCredentials: 'Streamlabs AWS'
       regionName: 'us-west-2'
       bucketName: 'obsstudios3.streamlabs.com'
-      globExpressions: 'windows64-libobs-$(ReleaseName)-$(tag).7z'
+      globExpressions: 'libobs-windows64-$(ReleaseName)-$(tag).7z'
       filesAcl: 'public-read'
     displayName: 'Upload artifact to S3'
     condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'tags'))
@@ -75,3 +75,27 @@ jobs:
   
   - script: ./slobs_CI/build-script-osx.sh
     displayName: 'Configure / Build'
+
+  - task: ArchiveFiles@2
+    inputs:
+      rootFolderOrFile: $(InstallPath)
+      includeRootFolder: true
+      archiveType: 7z
+      archiveFile: 'libobs-osx-$(ReleaseName)-$(tag).7z'
+    displayName: 'Generate artifact'
+
+  - task: PublishBuildArtifacts@1
+    inputs: 
+      pathtoPublish: libobs-osx-$(ReleaseName)-$(tag).7z
+      artifactName: libobs-$(ReleaseName)-$(BuildNumber).7z
+    displayName: 'Publish artifact'
+
+  - task: S3Upload@1
+    inputs:
+      awsCredentials: 'Streamlabs AWS'
+      regionName: 'us-west-2'
+      bucketName: 'obsstudios3.streamlabs.com'
+      globExpressions: 'libobs-osx-$(ReleaseName)-$(tag).7z'
+      filesAcl: 'public-read'
+    displayName: 'Upload artifact to S3'
+    condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'tags'))
