@@ -43,7 +43,7 @@ jobs:
       rootFolderOrFile: $(InstallPath)
       includeRootFolder: true
       archiveType: 7z
-      archiveFile: 'windows64-llibobs-$(ReleaseName)-$(tag).7z'
+      archiveFile: 'windows64-libobs-$(ReleaseName)-$(tag).7z'
     displayName: 'Generate artifact'
 
   - task: PublishBuildArtifacts@1
