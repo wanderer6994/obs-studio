@@ -69,6 +69,9 @@ jobs:
   steps:
   - script: git submodule update --init --recursive --jobs 2
     displayName: 'Checkout Submodules'
+    
+  - script: ls ./slobs_CI/ -l
+    displayName: 'Show permissions'
 
   - script: ./slobs_CI/install-script-osx.sh
     displayName: 'Configure / Build'
