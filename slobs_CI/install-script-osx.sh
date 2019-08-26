@@ -1,3 +1,8 @@
+echo "RUNNING INSTALL SCRIPT"
+
+# Echo all commands before executing
+set -v
+
 cd ../
 
 brew update
