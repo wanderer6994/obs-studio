@@ -1507,7 +1507,7 @@ bool scene_ref_enum_callback(void *data, obs_scene_t *source)
 	return true;
 }
 
-bool obs_know_scene(obs_scene_t * checking_scene)
+bool obs_scene_is_present(obs_scene_t * checking_scene)
 {
 	if (checking_scene == NULL)
 		return false;
@@ -1517,7 +1517,7 @@ bool obs_know_scene(obs_scene_t * checking_scene)
 	return checking_scene == NULL;
 }
  
-bool obs_know_source(obs_source_t * checking_source)
+bool obs_source_is_present(obs_source_t * checking_source)
 {
 	if (checking_source == NULL)
 		return false;

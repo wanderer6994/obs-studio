@@ -597,8 +597,8 @@ EXPORT void obs_enum_services(bool (*enum_proc)(void *, obs_service_t *),
 			      void *param);
 
 /** Check if global obs object know that reference */
-EXPORT bool obs_know_scene(obs_scene_t * checking_scene);
-EXPORT bool obs_know_source(obs_source_t * checking_source);
+EXPORT bool obs_scene_is_present(obs_scene_t * checking_scene);
+EXPORT bool obs_source_is_present(obs_source_t * checking_source);
 
 /**
  * Gets a source by its name.
