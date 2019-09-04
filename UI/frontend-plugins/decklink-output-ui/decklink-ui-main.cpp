@@ -238,7 +238,8 @@ void render_preview_source(void *param, uint32_t cx, uint32_t cy)
 
 		struct video_frame output_frame;
 		if (video_output_lock_frame(ctx->video_queue, &output_frame, 1,
-					    os_gettime_ns())) {
+					    os_gettime_ns(),
+					    OBS_MAIN_VIDEO_RENDERING)) {
 			gs_stage_texture(
 				ctx->stagesurface,
 				gs_texrender_get_texture(ctx->texrender));

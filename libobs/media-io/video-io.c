@@ -27,6 +27,7 @@
 #include "video-io.h"
 #include "video-frame.h"
 #include "video-scaler.h"
+#include "obs.h"
 
 extern profiler_name_store_t *obs_get_profiler_name_store(void);
 
@@ -45,7 +46,8 @@ struct video_input {
 	struct video_frame frame[MAX_CONVERT_BUFFERS];
 	int cur_frame;
 
-	void (*callback)(void *param, struct video_data *frame);
+	void (*callback)(void *param, struct video_data *streaming_frame,
+			 struct video_data *recording_frame);
 	void *param;
 };
 
@@ -76,7 +78,9 @@ struct video_output {
 	size_t available_frames;
 	size_t first_added;
 	size_t last_added;
-	struct cached_frame_info cache[MAX_CACHE_SIZE];
+	struct cached_frame_info main_cache[MAX_CACHE_SIZE];
+	struct cached_frame_info streaming_cache[MAX_CACHE_SIZE];
+	struct cached_frame_info recording_cache[MAX_CACHE_SIZE];
 
 	volatile bool raw_active;
 	volatile long gpu_refs;
@@ -125,7 +129,12 @@ static inline bool video_output_cur_frame(struct video_output *video)
 
 	pthread_mutex_lock(&video->data_mutex);
 
-	frame_info = &video->cache[video->first_added];
+	struct cached_frame_info *main_frame_info =
+		&video->main_cache[video->first_added];
+	struct cached_frame_info *streaming_frame_info =
+		&video->streaming_cache[video->first_added];
+	struct cached_frame_info *recording_frame_info =
+		&video->recording_cache[video->first_added];
 
 	pthread_mutex_unlock(&video->data_mutex);
 
@@ -135,10 +144,20 @@ static inline bool video_output_cur_frame(struct video_output *video)
 
 	for (size_t i = 0; i < video->inputs.num; i++) {
 		struct video_input *input = video->inputs.array + i;
-		struct video_data frame = frame_info->frame;
-
-		if (scale_video_output(input, &frame))
-			input->callback(input->param, &frame);
+		if (!obs_get_multiple_rendering()) {
+			if (scale_video_output(input, &main_frame_info->frame))
+				input->callback(input->param,
+						&main_frame_info->frame,
+						&main_frame_info->frame);
+		} else {
+			if (scale_video_output(input,
+					       &streaming_frame_info->frame) &&
+			    scale_video_output(input,
+					       &recording_frame_info->frame))
+				input->callback(input->param,
+						&streaming_frame_info->frame,
+						&recording_frame_info->frame);
+		}
 	}
 
 	pthread_mutex_unlock(&video->input_mutex);
@@ -147,9 +166,19 @@ static inline bool video_output_cur_frame(struct video_output *video)
 
 	pthread_mutex_lock(&video->data_mutex);
 
-	frame_info->frame.timestamp += video->frame_time;
-	complete = --frame_info->count == 0;
-	skipped = frame_info->skipped > 0;
+	if (!obs_get_multiple_rendering()) {
+		main_frame_info->frame.timestamp += video->frame_time;
+		complete = --main_frame_info->count == 0;
+		skipped = main_frame_info->skipped > 0;
+	} else {
+		streaming_frame_info->frame.timestamp += video->frame_time;
+		complete = --streaming_frame_info->count == 0;
+		skipped = streaming_frame_info->skipped > 0;
+
+		recording_frame_info->frame.timestamp += video->frame_time;
+		complete = --recording_frame_info->count == 0;
+		skipped = recording_frame_info->skipped > 0;
+	}
 
 	if (complete) {
 		if (++video->first_added == video->info.cache_size)
@@ -158,7 +187,12 @@ static inline bool video_output_cur_frame(struct video_output *video)
 		if (++video->available_frames == video->info.cache_size)
 			video->last_added = video->first_added;
 	} else if (skipped) {
-		--frame_info->skipped;
+		if (!obs_get_multiple_rendering()) {
+			--main_frame_info->skipped;
+		} else {
+			--streaming_frame_info->skipped;
+			--recording_frame_info->skipped;
+		}
 		os_atomic_inc_long(&video->skipped_frames);
 	}
 
@@ -211,11 +245,25 @@ static inline void init_cache(struct video_output *video)
 		video->info.cache_size = MAX_CACHE_SIZE;
 
 	for (size_t i = 0; i < video->info.cache_size; i++) {
-		struct video_frame *frame;
-		frame = (struct video_frame *)&video->cache[i];
+		struct video_frame *main_frame;
+		main_frame = (struct video_frame *)&video->main_cache[i];
 
-		video_frame_init(frame, video->info.format, video->info.width,
-				 video->info.height);
+		video_frame_init(main_frame, video->info.format,
+				 video->info.width, video->info.height);
+
+		struct video_frame *streaming_frame;
+		streaming_frame =
+			(struct video_frame *)&video->streaming_cache[i];
+
+		video_frame_init(streaming_frame, video->info.format,
+				 video->info.width, video->info.height);
+
+		struct video_frame *recording_frame;
+		recording_frame =
+			(struct video_frame *)&video->recording_cache[i];
+
+		video_frame_init(recording_frame, video->info.format,
+				 video->info.width, video->info.height);
 	}
 
 	video->available_frames = video->info.cache_size;
@@ -273,8 +321,13 @@ void video_output_close(video_t *video)
 		video_input_free(&video->inputs.array[i]);
 	da_free(video->inputs);
 
-	for (size_t i = 0; i < video->info.cache_size; i++)
-		video_frame_free((struct video_frame *)&video->cache[i]);
+	for (size_t i = 0; i < video->info.cache_size; i++) {
+		video_frame_free((struct video_frame *)&video->main_cache[i]);
+		video_frame_free(
+			(struct video_frame *)&video->streaming_cache[i]);
+		video_frame_free(
+			(struct video_frame *)&video->recording_cache[i]);
+	}
 
 	os_sem_destroy(video->update_semaphore);
 	pthread_mutex_destroy(&video->data_mutex);
@@ -341,7 +394,9 @@ static inline void reset_frames(video_t *video)
 
 bool video_output_connect(
 	video_t *video, const struct video_scale_info *conversion,
-	void (*callback)(void *param, struct video_data *frame), void *param)
+	void (*callback)(void *param, struct video_data *streaming_frame,
+				struct video_data *recording_frame),
+	void *param)
 {
 	bool success = false;
 
@@ -406,7 +461,8 @@ static void log_skipped(video_t *video)
 
 void video_output_disconnect(video_t *video,
 			     void (*callback)(void *param,
-					      struct video_data *frame),
+                                              struct video_data *streaming_frame,
+                                              struct video_data *recording_frame),
 			     void *param)
 {
 	if (!video || !callback)
@@ -443,19 +499,30 @@ const struct video_output_info *video_output_get_info(const video_t *video)
 }
 
 bool video_output_lock_frame(video_t *video, struct video_frame *frame,
-			     int count, uint64_t timestamp)
+			     int count, uint64_t timestamp,
+			     enum obs_video_rendering_mode mode)
 {
+	struct cached_frame_info *g_cfi;
 	struct cached_frame_info *cfi;
 	bool locked;
 
 	if (!video)
 		return false;
 
+	if (mode == OBS_STREAMING_VIDEO_RENDERING)
+		g_cfi = video->streaming_cache;
+	else if (mode == OBS_RECORDING_VIDEO_RENDERING)
+		g_cfi = video->recording_cache;
+	else
+		g_cfi = video->main_cache;
+
 	pthread_mutex_lock(&video->data_mutex);
 
 	if (video->available_frames == 0) {
-		video->cache[video->last_added].count += count;
-		video->cache[video->last_added].skipped += count;
+		g_cfi[video->last_added].count += count;
+		g_cfi[video->last_added].skipped += count;
+		g_cfi[video->last_added].count += count;
+		g_cfi[video->last_added].skipped += count;
 		locked = false;
 
 	} else {
@@ -464,7 +531,7 @@ bool video_output_lock_frame(video_t *video, struct video_frame *frame,
 				video->last_added = 0;
 		}
 
-		cfi = &video->cache[video->last_added];
+		cfi = &g_cfi[video->last_added];
 		cfi->frame.timestamp = timestamp;
 		cfi->count = count;
 		cfi->skipped = 0;

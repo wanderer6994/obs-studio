@@ -957,9 +957,28 @@ bool obs_transition_audio_render(obs_source_t *transition, uint64_t *ts_out,
 					      min_ts, mixers, channels,
 					      sample_rate, mix_b);
 		} else if (state.s[0]) {
-			memcpy(audio->output[0].data[0],
-			       state.s[0]->audio_output_buf[0][0],
-			       TOTAL_AUDIO_SIZE);
+			switch (obs_get_audio_rendering_mode()) {
+			case OBS_MAIN_AUDIO_RENDERING: {
+				memcpy(audio->output[0].data[0],
+				       state.s[0]->audio_main_output_buf[0][0],
+				       TOTAL_AUDIO_SIZE);
+				break;
+			}
+			case OBS_STREAMING_AUDIO_RENDERING: {
+				memcpy(audio->output[0].data[0],
+				       state.s[0]->audio_streaming_output_buf[0]
+									     [0],
+				       TOTAL_AUDIO_SIZE);
+				break;
+			}
+			case OBS_RECORDING_AUDIO_RENDERING: {
+				memcpy(audio->output[0].data[0],
+				       state.s[0]->audio_recording_output_buf[0]
+									     [0],
+				       TOTAL_AUDIO_SIZE);
+				break;
+			}
+			}
 		}
 
 		obs_source_release(state.s[0]);
