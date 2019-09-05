@@ -102,11 +102,11 @@ static bool obs_init_gpu_conversion(struct obs_video_info *ovi)
 	for (size_t i = 0; i < NUM_RENDERING_MODES; i++) {
 #ifdef _WIN32
 		if (video->using_nv12_tex) {
-				gs_texture_create_nv12(
-					       &video->textures[i].convert_textures[0],
-					       &video->textures[i].convert_textures[1],
-					       ovi->output_width, ovi->output_height,
-					       GS_RENDER_TARGET | GS_SHARED_KM_TEX);
+			gs_texture_create_nv12(
+				&video->textures[i].convert_textures[0],
+				&video->textures[i].convert_textures[1],
+				ovi->output_width, ovi->output_height,
+				GS_RENDER_TARGET | GS_SHARED_KM_TEX);
 		} else {
 #endif
 			video->textures[i].convert_textures[0] =

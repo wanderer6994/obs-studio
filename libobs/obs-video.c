@@ -119,7 +119,7 @@ static inline void unmap_last_surface(struct obs_core_video *video)
 
 static const char *render_main_texture_name = "render_main_texture";
 static inline void render_main_texture(struct obs_core_video *video,
-				       enum obs_rendering_mode mode)
+				       enum obs_video_rendering_mode mode)
 {
 	profile_start(render_main_texture_name);
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_MAIN_TEXTURE,
@@ -209,12 +209,10 @@ static inline gs_effect_t *get_scale_effect(struct obs_core_video *video,
 
 static const char *render_output_texture_name = "render_output_texture";
 static inline gs_texture_t *render_output_texture(struct obs_core_video *video,
-						  enum obs_rendering_mode mode)
+						  enum obs_video_rendering_mode mode)
 {
-	gs_texture_t *texture =
-		video->textures[mode].render_texture;
-	gs_texture_t *target =
-		video->textures[mode].output_texture;
+	gs_texture_t *texture = video->textures[mode].render_texture;
+	gs_texture_t *target = video->textures[mode].output_texture;
 	uint32_t width = gs_texture_get_width(target);
 	uint32_t height = gs_texture_get_height(target);
 
@@ -363,7 +361,7 @@ static void render_convert_texture(struct obs_core_video *video,
 static const char *stage_output_texture_name = "stage_output_texture";
 static inline void stage_output_texture(struct obs_core_video *video,
 					int cur_texture,
-					enum obs_rendering_mode mode)
+					enum obs_video_rendering_mode mode)
 {
 	profile_start(stage_output_texture_name);
 
@@ -444,7 +442,9 @@ static inline bool queue_frame(struct obs_core_video *video, bool raw_active,
 		 * reason.  otherwise, it goes to the 'duplicate' case above, which
 		 * will ensure better performance. */
 		if (raw_active || vframe_info->count > 1) {
-			gs_copy_texture(tf.tex, video->textures[i].convert_textures[0]);
+			gs_copy_texture(
+				tf.tex,
+				video->textures[i].convert_textures[0]);
 		} else {
 			gs_texture_t *tex =
 				video->textures[i].convert_textures[0];
@@ -489,8 +489,7 @@ static void output_gpu_encoders(struct obs_core_video *video, bool raw_active)
 	if (!video->textures[OBS_MAIN_VIDEO_RENDERING].texture_converted)
 		goto end;
 
-	if (!video->textures[OBS_MAIN_VIDEO_RENDERING]
-			.texture_converted)
+	if (!video->textures[OBS_MAIN_VIDEO_RENDERING].texture_converted)
 		goto end;
 
 	if (obs_get_multiple_rendering()) {
@@ -528,9 +527,9 @@ static inline void render_video(struct obs_core_video *video, bool raw_active,
 	render_main_texture(video, OBS_MAIN_VIDEO_RENDERING);
 
 	if (obs_get_multiple_rendering()) {
-		render_main_texture(video, cur_texture,
+		render_main_texture(video,
 				    OBS_STREAMING_VIDEO_RENDERING);
-		render_main_texture(video, cur_texture,
+		render_main_texture(video,
 				    OBS_RECORDING_VIDEO_RENDERING);
 	}
 
@@ -606,7 +605,7 @@ static inline void render_video(struct obs_core_video *video, bool raw_active,
 
 static inline bool download_frame(struct obs_core_video *video,
 				  int prev_texture, struct video_data *frame,
-				  enum obs_rendering_mode mode)
+				  enum obs_video_rendering_mode mode)
 {
 	if (!video->textures[mode].textures_copied[prev_texture])
 		return false;
