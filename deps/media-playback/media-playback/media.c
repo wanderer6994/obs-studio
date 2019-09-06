@@ -346,6 +346,11 @@ static void mp_media_next_audio(mp_media_t *m)
 	if (m->enable_caching) {
 		if (m->audio.data.num <= 0)
 			return;
+
+		if (m->audio.index_eof > 0 &&
+		    m->audio.index >= m->audio.index_eof)
+			return;
+
 		audio = m->audio.data.array[m->audio.index];
 	}
 
@@ -493,6 +498,11 @@ static void mp_media_next_video(mp_media_t *m, bool preload)
 	else if (m->enable_caching) {
 		if (m->video.data.num <= 0)
 			return;
+
+		if (m->video.index_eof > 0 &&
+		    m->video.index >= m->video.index_eof)
+			return;
+
 		frame = m->video.data.array[m->video.index];
 	}
 	m->video.index++;
@@ -645,6 +655,14 @@ static inline bool mp_media_eof(mp_media_t *m)
 		m->video.index = 0;
 		m->audio.index_eof = m->audio.index;
 		m->audio.index = 0;
+
+		blog(LOG_INFO,
+		     "End of file detected [DECODED] at audio index: %d",
+		     m->audio.index_eof);
+		blog(LOG_INFO,
+		     "End of file detected [DECODED] at video index: %d",
+		     m->video.index_eof);
+
 		pthread_mutex_unlock(&m->mutex);
 
 		mp_media_reset(m);
@@ -814,8 +832,14 @@ static inline bool mp_media_thread(mp_media_t *m)
 					}
 
 				}
-				if ((m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) ||
+				if ((m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) &&
 					(m->video.index_eof > 0 && m->video.index == m->video.index_eof)) {
+					blog(LOG_INFO,
+					     "End of file detected [CACHED] at audio index: %d",
+					     m->audio.index);
+					blog(LOG_INFO,
+					     "End of file detected [CACHED] at video index: %d",
+					     m->video.index);
 					m->audio.index = 0;
 					m->video.index = 0;
 					m->video.last_processed_ns = 0;
