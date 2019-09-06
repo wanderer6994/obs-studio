@@ -655,14 +655,6 @@ static inline bool mp_media_eof(mp_media_t *m)
 		m->video.index = 0;
 		m->audio.index_eof = m->audio.index;
 		m->audio.index = 0;
-
-		blog(LOG_INFO,
-		     "End of file detected [DECODED] at audio index: %d",
-		     m->audio.index_eof);
-		blog(LOG_INFO,
-		     "End of file detected [DECODED] at video index: %d",
-		     m->video.index_eof);
-
 		pthread_mutex_unlock(&m->mutex);
 
 		mp_media_reset(m);
