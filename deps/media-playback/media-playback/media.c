@@ -834,12 +834,6 @@ static inline bool mp_media_thread(mp_media_t *m)
 				}
 				if ((m->audio.index_eof > 0 && m->audio.index == m->audio.index_eof) &&
 					(m->video.index_eof > 0 && m->video.index == m->video.index_eof)) {
-					blog(LOG_INFO,
-					     "End of file detected [CACHED] at audio index: %d",
-					     m->audio.index);
-					blog(LOG_INFO,
-					     "End of file detected [CACHED] at video index: %d",
-					     m->video.index);
 					m->audio.index = 0;
 					m->video.index = 0;
 					m->video.last_processed_ns = 0;
