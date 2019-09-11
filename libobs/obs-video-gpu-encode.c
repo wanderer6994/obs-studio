@@ -90,8 +90,8 @@ static void *gpu_encode_thread(void *unused)
 			struct obs_output *output = cb->param;
 
 			if (obs_get_multiple_rendering()) {
-				if (strcmp(output->info.id, "rtmp_output") ==
-				    0) {
+				if (strcmp(output->info.id, "rtmp_output") == 0 ||
+					strcmp(output->info.id, "ftl_output") == 0) {
 					mode = OBS_STREAMING_VIDEO_RENDERING;
 					stream_encoded = true;
 				} else if (strcmp(output->info.id,

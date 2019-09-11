@@ -1029,7 +1029,8 @@ static void receive_video(void *param, struct video_data *streaming_frame,
 	if (!obs_get_multiple_rendering()) {
 		frame = streaming_frame;
 	} else {
-		if (strcmp(output->info.id, "rtmp_output") == 0)
+		if (strcmp(output->info.id, "rtmp_output") == 0 ||
+			strcmp(output->info.id, "ftl_output") == 0)
 			frame = streaming_frame;
 		else if (strcmp(output->info.id, "ffmpeg_muxer") == 0)
 			frame = recording_frame;
@@ -1287,7 +1288,8 @@ static void receive_audio(void *param, size_t mix_idx,
 	if (!obs_get_multiple_rendering()) {
 		data = streaming_data;
 	} else {
-		if (strcmp(output->info.id, "rtmp_output") == 0)
+		if (strcmp(output->info.id, "rtmp_output") == 0 ||
+			strcmp(output->info.id, "ftl_output") == 0)
 			data = streaming_data;
 		else if (strcmp(output->info.id, "ffmpeg_muxer") == 0)
 			data = recording_data;
