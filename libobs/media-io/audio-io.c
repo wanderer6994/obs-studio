@@ -193,12 +193,10 @@ static inline void do_audio_output(struct audio_output *audio, size_t mix_idx,
 						     &recording_data);
 			}
 		} else {
-			if (resample_audio_output(main_input, &main_data) &&
-			    resample_audio_output(streaming_input,
-						  &streaming_data)) {
+			if (resample_audio_output(main_input, &main_data))
+			{
 				main_input->callback(main_input->param, mix_idx,
-						     &streaming_data,
-						     &streaming_data);
+						     &main_data, &main_data);
 			}
 		}
 	}

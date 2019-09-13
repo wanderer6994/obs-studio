@@ -1050,6 +1050,10 @@ static void receive_video(void *param, struct video_data *streaming_frame,
 	if (!encoder->first_received && pair) {
 		if (!pair->first_received ||
 		    pair->first_raw_ts > frame->timestamp) {
+			blog(LOG_INFO, "---------------");
+			blog(LOG_INFO, "first_raw_ts: %ld", pair->first_raw_ts);
+			blog(LOG_INFO, "timestamp: %ld", frame->timestamp);
+			blog(LOG_INFO, "---------------");
 			goto wait_for_audio;
 		}
 	}
@@ -1069,7 +1073,7 @@ static void receive_video(void *param, struct video_data *streaming_frame,
 
 	enc_frame.frames = 1;
 	enc_frame.pts = encoder->cur_pts;
-
+	//blog(LOG_INFO, "do_encode");
 	if (do_encode(encoder, &enc_frame))
 		encoder->cur_pts += encoder->timebase_num;
 

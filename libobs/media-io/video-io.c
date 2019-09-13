@@ -180,6 +180,9 @@ static inline bool video_output_cur_frame(struct video_output *video)
 		skipped = recording_frame_info->skipped > 0;
 	}
 
+	blog(LOG_INFO, "complete: %d", complete);
+	blog(LOG_INFO, "skipped: %d", skipped);
+
 	if (complete) {
 		if (++video->first_added == video->info.cache_size)
 			video->first_added = 0;
@@ -526,6 +529,7 @@ bool video_output_lock_frame(video_t *video, struct video_frame *frame,
 		locked = false;
 
 	} else {
+		blog(LOG_INFO, "Frame is available for mode %d", mode);
 		if (video->available_frames != video->info.cache_size) {
 			if (++video->last_added == video->info.cache_size)
 				video->last_added = 0;
