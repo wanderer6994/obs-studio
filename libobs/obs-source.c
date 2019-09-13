@@ -4289,29 +4289,32 @@ static float get_source_volume(obs_source_t *source, uint64_t os_time)
 }
 
 static inline void multiply_output_audio(obs_source_t *source, size_t mix,
-					 size_t channels, float vol)
+					 size_t channels, float vol,
+					 enum obs_video_rendering_mode mode)
 {
-	register float *out = source->audio_main_output_buf[mix][0];
-	register float *end = out + AUDIO_OUTPUT_FRAMES * channels;
+	register float *out = NULL;
+	register float *end = NULL;
+
+	switch (mode) {
+	case OBS_MAIN_VIDEO_RENDERING: {
+		out = source->audio_main_output_buf[mix][0];
+		end = out + AUDIO_OUTPUT_FRAMES * channels;
+		break;
+	}
+	case OBS_STREAMING_VIDEO_RENDERING: {
+		out = source->audio_streaming_output_buf[mix][0];
+		end = out + AUDIO_OUTPUT_FRAMES * channels;
+		break;
+	}
+	case OBS_RECORDING_VIDEO_RENDERING: {
+		out = source->audio_recording_output_buf[mix][0];
+		end = out + AUDIO_OUTPUT_FRAMES * channels;
+		break;
+	}
+	}
 
 	while (out < end)
 		*(out++) *= vol;
-
-	register float *streaming_out =
-		source->audio_streaming_output_buf[mix][0];
-	register float *streaming_end =
-		streaming_out + AUDIO_OUTPUT_FRAMES * channels;
-
-	while (streaming_out < streaming_end)
-		*(streaming_end++) *= vol;
-
-	register float *recording_out =
-		source->audio_recording_output_buf[mix][0];
-	register float *recording_end =
-		recording_out + AUDIO_OUTPUT_FRAMES * channels;
-
-	while (recording_out < recording_end)
-		*(recording_end++) *= vol;
 }
 
 static inline void multiply_vol_data(obs_source_t *source, size_t mix,
@@ -4456,12 +4459,16 @@ static void apply_audio_volume(obs_source_t *source, uint32_t mixers,
 		return;
 	}
 
-	for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {
-		uint32_t mix_and_val = (1 << mix);
-		if ((source->audio_mixers & mix_and_val) != 0 &&
-		    (mixers & mix_and_val) != 0)
-			multiply_output_audio(source, mix, channels, vol);
+	for (int i = 0; i < NUM_RENDERING_MODES; i++) {
+		for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {
+			uint32_t mix_and_val = (1 << mix);
+			if ((source->audio_mixers & mix_and_val) != 0 &&
+			    (mixers & mix_and_val) != 0)
+				multiply_output_audio(source, mix, channels,
+						      vol, i);
+		}
 	}
+
 }
 
 static void custom_audio_render(obs_source_t *source, uint32_t mixers,

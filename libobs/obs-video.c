@@ -830,29 +830,26 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_RENDER_VIDEO,
 			      output_frame_render_video_name);
 
-	for (int i = 0; i < 3; i++) {
-		render_video(video, raw_active, gpu_active, cur_texture, i);
+	for (int mode = 0; mode < NUM_RENDERING_MODES; mode++) {
+		render_video(video, raw_active, gpu_active, cur_texture, mode);
 
 		if (raw_active) {
 			profile_start(output_frame_download_frame_name);
 
-			switch (i) {
-			case 0: {
+			switch (mode) {
+			case OBS_MAIN_VIDEO_RENDERING: {
 				frame_ready = download_frame(
-					video, prev_texture, &main_frame,
-					OBS_MAIN_VIDEO_RENDERING);
+					video, prev_texture, &main_frame, mode);
 				break;
 			}
-			case 1: {
+			case OBS_STREAMING_VIDEO_RENDERING: {
 				frame_ready = download_frame(
-					video, prev_texture, &streaming_frame,
-					OBS_STREAMING_VIDEO_RENDERING);
+					video, prev_texture, &streaming_frame, mode);
 				break;
 			}
-			case 2: {
+			case OBS_RECORDING_VIDEO_RENDERING: {
 				frame_ready = download_frame(
-					video, prev_texture, &recording_frame,
-					OBS_RECORDING_VIDEO_RENDERING);
+					video, prev_texture, &recording_frame, mode);
 				break;
 			}
 			}
