@@ -517,51 +517,26 @@ end:
 #endif
 
 static inline void render_video(struct obs_core_video *video, bool raw_active,
-				const bool gpu_active, int cur_texture)
+				const bool gpu_active, int cur_texture,
+				enum obs_video_rendering_mode mode)
 {
 	gs_begin_scene();
 
 	gs_enable_depth_test(false);
 	gs_set_cull_mode(GS_NEITHER);
 
-	render_main_texture(video, OBS_MAIN_VIDEO_RENDERING);
-
-	if (obs_get_multiple_rendering()) {
-		render_main_texture(video,
-				    OBS_STREAMING_VIDEO_RENDERING);
-		render_main_texture(video,
-				    OBS_RECORDING_VIDEO_RENDERING);
-	}
+	render_main_texture(video, mode);
 
 	if (raw_active || gpu_active) {
-		gs_texture_t *main_texture =
-			render_output_texture(video, OBS_MAIN_VIDEO_RENDERING);
-		gs_texture_t *streaming_texture = NULL;
-		gs_texture_t *recording_texture = NULL;
-
-		if (obs_get_multiple_rendering()) {
-			streaming_texture = render_output_texture(
-				video, OBS_STREAMING_VIDEO_RENDERING);
-			recording_texture = render_output_texture(
-				video, OBS_RECORDING_VIDEO_RENDERING);
-		}
+		gs_texture_t *texture = render_output_texture(video, mode);
 
 #ifdef _WIN32
 		if (gpu_active)
 			gs_flush();
 #endif
 
-		if (video->gpu_conversion) {
-			render_convert_texture(video, main_texture,
-					       OBS_MAIN_VIDEO_RENDERING);
-
-			if (obs_get_multiple_rendering()) {
-				render_convert_texture(video, streaming_texture,
-					OBS_STREAMING_VIDEO_RENDERING);
-				render_convert_texture(video, recording_texture,
-					OBS_RECORDING_VIDEO_RENDERING);
-			}
-		}
+		if (video->gpu_conversion)
+			render_convert_texture(video, texture, mode);
 
 #ifdef _WIN32
 		if (gpu_active) {
@@ -570,31 +545,8 @@ static inline void render_video(struct obs_core_video *video, bool raw_active,
 		}
 #endif
 
-		if (raw_active) {
-			if (!obs_get_multiple_rendering()) {
-				stage_output_texture(video, cur_texture,
-						     OBS_MAIN_VIDEO_RENDERING);
-			} else {
-				stage_output_texture(video, cur_texture,
-						     OBS_STREAMING_VIDEO_RENDERING);
-				stage_output_texture(video, cur_texture,
-						     OBS_RECORDING_VIDEO_RENDERING);
-			}
-		}
-
-		if (raw_active) {
-			if (!obs_get_multiple_rendering()) {
-				stage_output_texture(video, cur_texture,
-						     OBS_MAIN_VIDEO_RENDERING);
-			} else {
-				stage_output_texture(
-					video, cur_texture,
-					OBS_STREAMING_VIDEO_RENDERING);
-				stage_output_texture(
-					video, cur_texture,
-					OBS_RECORDING_VIDEO_RENDERING);
-			}
-		}
+		if (raw_active)
+			stage_output_texture(video, cur_texture, mode);
 	}
 
 	gs_set_render_target(NULL, NULL);
@@ -877,26 +829,39 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 	profile_start(output_frame_render_video_name);
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_RENDER_VIDEO,
 			      output_frame_render_video_name);
-	render_video(video, raw_active, gpu_active, cur_texture);
+
+	for (int i = 0; i < 3; i++) {
+		render_video(video, raw_active, gpu_active, cur_texture, i);
+
+		if (raw_active) {
+			profile_start(output_frame_download_frame_name);
+
+			switch (i) {
+			case 0: {
+				frame_ready = download_frame(
+					video, prev_texture, &main_frame,
+					OBS_MAIN_VIDEO_RENDERING);
+				break;
+			}
+			case 1: {
+				frame_ready = download_frame(
+					video, prev_texture, &streaming_frame,
+					OBS_STREAMING_VIDEO_RENDERING);
+				break;
+			}
+			case 2: {
+				frame_ready = download_frame(
+					video, prev_texture, &recording_frame,
+					OBS_RECORDING_VIDEO_RENDERING);
+				break;
+			}
+			}
+			profile_end(output_frame_download_frame_name);
+		}
+	}
+
 	GS_DEBUG_MARKER_END();
 	profile_end(output_frame_render_video_name);
-
-	if (raw_active) {
-		profile_start(output_frame_download_frame_name);
-		if (!obs_get_multiple_rendering()) {
-			frame_ready = download_frame(video, prev_texture,
-						     &main_frame,
-						     OBS_MAIN_VIDEO_RENDERING);
-		} else {
-			frame_ready = download_frame(
-				video, prev_texture, &streaming_frame,
-				OBS_STREAMING_VIDEO_RENDERING);
-			frame_ready = download_frame(
-				video, prev_texture, &recording_frame,
-				OBS_RECORDING_VIDEO_RENDERING);
-		}
-		profile_end(output_frame_download_frame_name);
-	}
 
 	profile_start(output_frame_gs_flush_name);
 	gs_flush();
