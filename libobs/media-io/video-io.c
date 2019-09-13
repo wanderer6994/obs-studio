@@ -150,10 +150,12 @@ static inline bool video_output_cur_frame(struct video_output *video)
 						&main_frame_info->frame,
 						&main_frame_info->frame);
 		} else {
+			//if (scale_video_output(input,
+			//		       &streaming_frame_info->frame) &&
+			//    scale_video_output(input,
+			//		       &recording_frame_info->frame))
 			if (scale_video_output(input,
-					       &streaming_frame_info->frame) &&
-			    scale_video_output(input,
-					       &recording_frame_info->frame))
+					       &streaming_frame_info->frame))
 				input->callback(input->param,
 						&streaming_frame_info->frame,
 						&recording_frame_info->frame);
@@ -175,9 +177,9 @@ static inline bool video_output_cur_frame(struct video_output *video)
 		complete = --streaming_frame_info->count == 0;
 		skipped = streaming_frame_info->skipped > 0;
 
-		recording_frame_info->frame.timestamp += video->frame_time;
-		complete = --recording_frame_info->count == 0;
-		skipped = recording_frame_info->skipped > 0;
+		//recording_frame_info->frame.timestamp += video->frame_time;
+		//complete = --recording_frame_info->count == 0;
+		//skipped = recording_frame_info->skipped > 0;
 	}
 
 	blog(LOG_INFO, "complete: %d", complete);
@@ -194,7 +196,7 @@ static inline bool video_output_cur_frame(struct video_output *video)
 			--main_frame_info->skipped;
 		} else {
 			--streaming_frame_info->skipped;
-			--recording_frame_info->skipped;
+			//--recording_frame_info->skipped;
 		}
 		os_atomic_inc_long(&video->skipped_frames);
 	}

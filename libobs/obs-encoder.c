@@ -1073,7 +1073,7 @@ static void receive_video(void *param, struct video_data *streaming_frame,
 
 	enc_frame.frames = 1;
 	enc_frame.pts = encoder->cur_pts;
-	//blog(LOG_INFO, "do_encode");
+	blog(LOG_INFO, "do_encode");
 	if (do_encode(encoder, &enc_frame))
 		encoder->cur_pts += encoder->timebase_num;
 

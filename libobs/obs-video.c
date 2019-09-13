@@ -913,8 +913,8 @@ void *obs_graphics_thread(void *param)
 		if (obs_get_multiple_rendering()) {
 			output_frame(raw_active, gpu_active,
 				     OBS_STREAMING_VIDEO_RENDERING);
-			output_frame(raw_active, gpu_active,
-				     OBS_RECORDING_VIDEO_RENDERING);
+			//output_frame(raw_active, gpu_active,
+			//	     OBS_RECORDING_VIDEO_RENDERING);
 		}
 
 		profile_end(output_frame_name);
