@@ -240,16 +240,14 @@ static void input_and_output(struct audio_output *audio, uint64_t audio_time,
 			     uint64_t prev_time)
 {
 	size_t bytes = AUDIO_OUTPUT_FRAMES * audio->block_size;
-	struct audio_output_data main_data[MAX_AUDIO_MIXES];
-	struct audio_output_data streaming_data[MAX_AUDIO_MIXES];
-	struct audio_output_data recording_data[MAX_AUDIO_MIXES];
+	struct audio_output_data data[NUM_RENDERING_MODES][MAX_AUDIO_MIXES];
 	uint32_t active_mixes = 0;
 	uint64_t new_ts = 0;
 	bool success;
 
-	memset(main_data, 0, sizeof(main_data));
-	memset(streaming_data, 0, sizeof(streaming_data));
-	memset(recording_data, 0, sizeof(recording_data));
+	for (enum obs_audio_rendering_mode mode = OBS_MAIN_AUDIO_RENDERING;
+	     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++)
+		memset(data[mode], 0, sizeof(data[mode]));
 
 #ifdef DEBUG_AUDIO
 	blog(LOG_DEBUG, "audio_time: %llu, prev_time: %llu, bytes: %lu",
@@ -275,32 +273,18 @@ static void input_and_output(struct audio_output *audio, uint64_t audio_time,
 			       AUDIO_OUTPUT_FRAMES * MAX_AUDIO_CHANNELS *
 				       sizeof(float));
 
-			for (size_t i = 0; i < audio->planes; i++) {
-				switch (mode) {
-				case OBS_MAIN_AUDIO_RENDERING: {
-					main_data[mix_idx].data[i] =
-						mix->buffer[i];
-					break;
-				}
-				case OBS_STREAMING_AUDIO_RENDERING: {
-					streaming_data[mix_idx].data[i] =
-						mix->buffer[i];
-					break;
-				}
-				case OBS_RECORDING_AUDIO_RENDERING: {
-					recording_data[mix_idx].data[i] =
-						mix->buffer[i];
-					break;
-				}
-				}
-			}
+			for (size_t i = 0; i < audio->planes; i++)
+				data[mode][mix_idx].data[i] =
+					mix->buffer[i];
 		}
 	}
 
 	/* get new audio data */
 	success = audio->input_cb(audio->input_param, prev_time, audio_time,
-				  &new_ts, active_mixes, main_data,
-				  streaming_data, recording_data);
+				  &new_ts, active_mixes,
+				  data[OBS_MAIN_AUDIO_RENDERING],
+				  data[OBS_STREAMING_AUDIO_RENDERING],
+				  data[OBS_RECORDING_AUDIO_RENDERING]);
 	if (!success)
 		return;
 

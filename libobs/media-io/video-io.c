@@ -121,7 +121,6 @@ static inline bool scale_video_output(struct video_input *input,
 
 static inline bool video_output_cur_frame(struct video_output *video)
 {
-	struct cached_frame_info *frame_info;
 	bool complete;
 	bool skipped;
 
@@ -324,8 +323,8 @@ void video_output_close(video_t *video)
 }
 
 static size_t video_get_input_idx(const video_t *video,
-				  void (*callback)(void *param,
-						   struct video_data *frame),
+	void (*callback)(void *param, struct video_data *streaming_frame,
+			 struct video_data *recording_frame),
 				  void *param)
 {
 	for (size_t i = 0; i < video->inputs.num; i++) {
