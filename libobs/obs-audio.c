@@ -65,42 +65,37 @@ static inline void mix_audio(struct audio_output_data *main_mixes,
 		total_floats -= start_point;
 	}
 
-	for (size_t mix_idx = 0; mix_idx < MAX_AUDIO_MIXES; mix_idx++) {
-		for (size_t ch = 0; ch < channels; ch++) {
-			register float *mix = main_mixes[mix_idx].data[ch];
-			register float *aud =
-				source->audio_main_output_buf[mix_idx][ch];
-			register float *end;
+	for (enum obs_audio_rendering_mode mode = OBS_MAIN_AUDIO_RENDERING;
+	     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++) {
+		for (size_t mix_idx = 0; mix_idx < MAX_AUDIO_MIXES; mix_idx++) {
+			for (size_t ch = 0; ch < channels; ch++) {
+				register float *mix = NULL;
+				switch (mode) {
+				case OBS_MAIN_AUDIO_RENDERING: {
+					mix = main_mixes[mix_idx].data[ch];
+					break;
+				}
+				case OBS_STREAMING_AUDIO_RENDERING: {
+					mix = streaming_mixes[mix_idx].data[ch];
+					break;
+				}
+				case OBS_RECORDING_AUDIO_RENDERING: {
+					mix = recording_mixes[mix_idx].data[ch];
+					break;
+				}
+				}
 
-			mix += start_point;
-			end = aud + total_floats;
+				register float *aud =
+					source->audio_output_buf[mode][mix_idx]
+								[ch];
+				register float *end;
 
-			while (aud < end)
-				*(mix++) += *(aud++);
+				mix += start_point;
+				end = aud + total_floats;
 
-			register float *streaming_mix =
-				streaming_mixes[mix_idx].data[ch];
-			register float *streaming_aud =
-				source->audio_streaming_output_buf[mix_idx][ch];
-			register float *streaming_end;
-
-			streaming_mix += start_point;
-			streaming_end = streaming_aud + total_floats;
-
-			while (streaming_aud < streaming_end)
-				*(streaming_mix++) += *(streaming_aud++);
-
-			register float *recording_mix =
-				recording_mixes[mix_idx].data[ch];
-			register float *recording_aud =
-				source->audio_recording_output_buf[mix_idx][ch];
-			register float *recording_end;
-
-			recording_mix += start_point;
-			recording_end = recording_aud + total_floats;
-
-			while (recording_aud < recording_end)
-				*(recording_mix++) += *(recording_aud++);
+				while (aud < end)
+					*(mix++) += *(aud++);
+			}
 		}
 	}
 }
@@ -108,40 +103,24 @@ static inline void mix_audio(struct audio_output_data *main_mixes,
 static void ignore_audio(obs_source_t *source, size_t channels,
 			 size_t sample_rate)
 {
-	size_t num_floats =
-		source->audio_main_input_buf[0].size / sizeof(float);
+	for (enum obs_audio_rendering_mode mode = OBS_MAIN_AUDIO_RENDERING;
+	     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++) {
+		size_t num_floats =
+			source->audio_input_buf[mode][0].size / sizeof(float);
 
-	if (num_floats) {
-		for (size_t ch = 0; ch < channels; ch++)
-			circlebuf_pop_front(
-				&source->audio_main_input_buf[ch], NULL,
-				source->audio_main_input_buf[ch].size);
+		if (num_floats) {
+			for (size_t ch = 0; ch < channels; ch++)
+				circlebuf_pop_front(
+					&source->audio_input_buf[mode][ch], NULL,
+					source->audio_input_buf[mode][ch].size);
 
-		source->last_audio_main_input_buf_size = 0;
-		source->audio_ts += (uint64_t)num_floats * 1000000000ULL /
-				    (uint64_t)sample_rate;
-	}
+			source->last_audio_input_buf_size[mode] = 0;
 
-	num_floats = source->audio_streaming_input_buf[0].size / sizeof(float);
-
-	if (num_floats) {
-		for (size_t ch = 0; ch < channels; ch++)
-			circlebuf_pop_front(
-				&source->audio_streaming_input_buf[ch], NULL,
-				source->audio_streaming_input_buf[ch].size);
-
-		source->last_audio_streaming_input_buf_size = 0;
-	}
-
-	num_floats = source->audio_recording_input_buf[0].size / sizeof(float);
-
-	if (num_floats) {
-		for (size_t ch = 0; ch < channels; ch++)
-			circlebuf_pop_front(
-				&source->audio_recording_input_buf[ch], NULL,
-				source->audio_recording_input_buf[ch].size);
-
-		source->last_audio_recording_input_buf_size = 0;
+			if (mode == OBS_MAIN_AUDIO_RENDERING)
+				source->audio_ts += (uint64_t)num_floats *
+						    1000000000ULL /
+						    (uint64_t)sample_rate;
+		}
 	}
 }
 
@@ -150,19 +129,8 @@ static bool discard_if_stopped(obs_source_t *source, size_t channels)
 	size_t last_size;
 	size_t size;
 
-	size_t last_streaming_size = -1;
-	size_t last_recording_size = -1;
-	size_t streaming_size = -1;
-	size_t recording_size = -1;
-
-	last_size = source->last_audio_main_input_buf_size;
-	size = source->audio_main_input_buf[0].size;
-
-	last_streaming_size = source->last_audio_streaming_input_buf_size;
-	streaming_size = source->audio_streaming_input_buf[0].size;
-
-	last_recording_size = source->last_audio_recording_input_buf_size;
-	recording_size = source->audio_recording_input_buf[0].size;
+	last_size = source->last_audio_input_buf_size[OBS_MAIN_AUDIO_RENDERING];
+	size = source->audio_input_buf[OBS_MAIN_AUDIO_RENDERING][0].size;
 
 	if (!size)
 		return false;
@@ -179,34 +147,32 @@ static bool discard_if_stopped(obs_source_t *source, size_t channels)
 			return true;
 		}
 
-		for (size_t ch = 0; ch < channels; ch++) {
-			circlebuf_pop_front(
-				&source->audio_main_input_buf[ch], NULL,
-				source->audio_main_input_buf[ch].size);
-
-			circlebuf_pop_front(
-				&source->audio_streaming_input_buf[ch], NULL,
-				source->audio_streaming_input_buf[ch].size);
-
-			circlebuf_pop_front(
-				&source->audio_recording_input_buf[ch], NULL,
-				source->audio_recording_input_buf[ch].size);
+		for (enum obs_audio_rendering_mode mode =
+			     OBS_MAIN_AUDIO_RENDERING;
+		     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++) {
+			for (size_t ch = 0; ch < channels; ch++)
+				circlebuf_pop_front(
+					&source->audio_input_buf[mode][ch], NULL,
+					source->audio_input_buf[mode][ch].size);
 		}
 
 		source->pending_stop = false;
 		source->audio_ts = 0;
-		source->last_audio_main_input_buf_size = 0;
-		source->last_audio_streaming_input_buf_size = 0;
-		source->last_audio_recording_input_buf_size = 0;
+
+		for (enum obs_audio_rendering_mode mode =
+			     OBS_MAIN_AUDIO_RENDERING;
+		     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++)
+			source->last_audio_input_buf_size[mode] = 0;
 #if DEBUG_AUDIO == 1
 		blog(LOG_DEBUG, "source audio data appears to have "
 				"stopped, clearing");
 #endif
 		return true;
 	} else {
-		source->last_audio_main_input_buf_size = size;
-		source->last_audio_streaming_input_buf_size = size;
-		source->last_audio_recording_input_buf_size = size;
+		for (enum obs_audio_rendering_mode mode =
+			     OBS_MAIN_AUDIO_RENDERING;
+		     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++)
+			source->last_audio_input_buf_size[mode] = size;
 		return false;
 	}
 }
@@ -242,7 +208,8 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	if (source->audio_ts < (ts->start - 1)) {
 		if (source->audio_pending &&
-		    source->audio_main_input_buf[0].size < MAX_AUDIO_SIZE &&
+		    source->audio_input_buf[OBS_MAIN_AUDIO_RENDERING][0].size <
+			    MAX_AUDIO_SIZE &&
 		    discard_if_stopped(source, channels))
 			return;
 
@@ -278,7 +245,8 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	size = total_floats * sizeof(float);
 
-	if (source->audio_main_input_buf[0].size < size) {
+	if (source->audio_input_buf[OBS_MAIN_AUDIO_RENDERING][0].size <
+	    size) {
 		if (discard_if_stopped(source, channels))
 			return;
 
@@ -290,23 +258,15 @@ static inline void discard_audio(struct obs_core_audio *audio,
 		return;
 	}
 
-	for (size_t ch = 0; ch < channels; ch++)
-		circlebuf_pop_front(&source->audio_main_input_buf[ch], NULL,
-				    size);
+	for (enum obs_audio_rendering_mode mode = OBS_MAIN_AUDIO_RENDERING;
+	     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++) {
+		for (size_t ch = 0; ch < channels; ch++)
+			circlebuf_pop_front(&source->audio_input_buf[mode][ch], NULL,
+					    size);
 
-	source->last_audio_main_input_buf_size = 0;
+		source->last_audio_input_buf_size[mode] = 0;
+	}
 
-	for (size_t ch = 0; ch < channels; ch++)
-		circlebuf_pop_front(&source->audio_streaming_input_buf[ch],
-				    NULL, size);
-
-	source->last_audio_streaming_input_buf_size = 0;
-
-	for (size_t ch = 0; ch < channels; ch++)
-		circlebuf_pop_front(&source->audio_recording_input_buf[ch],
-				    NULL, size);
-
-	source->last_audio_recording_input_buf_size = 0;
 #if DEBUG_AUDIO == 1
 	if (is_audio_source)
 		blog(LOG_DEBUG, "audio discarded, new ts: %" PRIu64, ts->end);
@@ -411,7 +371,7 @@ static bool audio_buffer_insuffient(struct obs_source *source,
 
 	size = total_floats * sizeof(float);
 
-	if (source->audio_main_input_buf[0].size < size) {
+	if (source->audio_input_buf[OBS_MAIN_AUDIO_RENDERING][0].size < size) {
 		source->audio_pending = true;
 		return true;
 	}
@@ -525,7 +485,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 			push_audio_tree(NULL, source, audio);
 		}
 
-		source = (struct obs_source*)source->next_audio_source;
+		source = (struct obs_source *)source->next_audio_source;
 	}
 
 	pthread_mutex_unlock(&data->audio_sources_mutex);
@@ -563,7 +523,8 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 			pthread_mutex_lock(&source->audio_streaming_buf_mutex);
 			pthread_mutex_lock(&source->audio_recording_buf_mutex);
 
-			if (source->audio_main_output_buf[0][0] &&
+			if (source->audio_output_buf[OBS_MAIN_AUDIO_RENDERING]
+						    [0][0] &&
 			    source->audio_ts)
 				mix_audio(main_mixes, streaming_mixes,
 					  recording_mixes, source, channels,
@@ -590,7 +551,8 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 			pthread_mutex_lock(&source->audio_main_buf_mutex);
 			pthread_mutex_lock(&source->audio_streaming_buf_mutex);
 			pthread_mutex_lock(&source->audio_recording_buf_mutex);
-			discard_audio(audio, source, channels, sample_rate, &ts);
+			discard_audio(audio, source, channels, sample_rate,
+				      &ts);
 			pthread_mutex_unlock(&source->audio_main_buf_mutex);
 			pthread_mutex_unlock(
 				&source->audio_streaming_buf_mutex);
