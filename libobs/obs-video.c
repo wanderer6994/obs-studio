@@ -733,7 +733,7 @@ static inline void output_video_data(struct obs_core_video *video,
 			video->video, &streaming_output_frame, count,
 			streaming_input_frame->timestamp,
 			OBS_STREAMING_VIDEO_RENDERING);
-		locked = video_output_lock_frame(
+		locked &= video_output_lock_frame(
 			video->video, &recording_output_frame, count,
 			recording_input_frame->timestamp,
 			OBS_RECORDING_VIDEO_RENDERING);
@@ -814,14 +814,10 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 	int cur_texture = video->cur_texture;
 	int prev_texture = cur_texture == 0 ? NUM_TEXTURES - 1
 					    : cur_texture - 1;
-	struct video_data main_frame;
-	struct video_data streaming_frame;
-	struct video_data recording_frame;
+	struct video_data main_frame = {0};
+	struct video_data streaming_frame = {0};
+	struct video_data recording_frame = {0};
 	bool frame_ready = 0;
-
-	memset(&main_frame, 0, sizeof(struct video_data));
-	memset(&streaming_frame, 0, sizeof(struct video_data));
-	memset(&recording_frame, 0, sizeof(struct video_data));
 
 	profile_start(output_frame_gs_context_name);
 	gs_enter_context(video->graphics);
