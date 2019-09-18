@@ -159,9 +159,7 @@ static bool obs_source_init(struct obs_source *source)
 	pthread_mutex_init_value(&source->filter_mutex);
 	pthread_mutex_init_value(&source->async_mutex);
 	pthread_mutex_init_value(&source->audio_mutex);
-	pthread_mutex_init_value(&source->audio_main_buf_mutex);
-	pthread_mutex_init_value(&source->audio_streaming_buf_mutex);
-	pthread_mutex_init_value(&source->audio_recording_buf_mutex);
+	pthread_mutex_init_value(&source->audio_buf_mutex);
 	pthread_mutex_init_value(&source->audio_cb_mutex);
 
 	if (pthread_mutexattr_init(&attr) != 0)
@@ -170,11 +168,7 @@ static bool obs_source_init(struct obs_source *source)
 		return false;
 	if (pthread_mutex_init(&source->filter_mutex, &attr) != 0)
 		return false;
-	if (pthread_mutex_init(&source->audio_main_buf_mutex, NULL) != 0)
-		return false;
-	if (pthread_mutex_init(&source->audio_streaming_buf_mutex, NULL) != 0)
-		return false;
-	if (pthread_mutex_init(&source->audio_recording_buf_mutex, NULL) != 0)
+	if (pthread_mutex_init(&source->audio_buf_mutex, NULL) != 0)
 		return false;
 	if (pthread_mutex_init(&source->audio_actions_mutex, NULL) != 0)
 		return false;
@@ -640,9 +634,7 @@ void obs_source_destroy(struct obs_source *source)
 	da_free(source->filters);
 	pthread_mutex_destroy(&source->filter_mutex);
 	pthread_mutex_destroy(&source->audio_actions_mutex);
-	pthread_mutex_destroy(&source->audio_main_buf_mutex);
-	pthread_mutex_destroy(&source->audio_streaming_buf_mutex);
-	pthread_mutex_destroy(&source->audio_recording_buf_mutex);
+	pthread_mutex_destroy(&source->audio_buf_mutex);
 	pthread_mutex_destroy(&source->audio_cb_mutex);
 	pthread_mutex_destroy(&source->audio_mutex);
 	pthread_mutex_destroy(&source->async_mutex);
@@ -1174,13 +1166,9 @@ static void handle_ts_jump(obs_source_t *source, uint64_t expected, uint64_t ts,
 	     "expected value %" PRIu64 ", input value %" PRIu64,
 	     source->context.name, diff, expected, ts);
 
-	pthread_mutex_lock(&source->audio_main_buf_mutex);
-	pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-	pthread_mutex_lock(&source->audio_recording_buf_mutex);
+	pthread_mutex_lock(&source->audio_buf_mutex);
 	reset_audio_timing(source, ts, os_time);
-	pthread_mutex_unlock(&source->audio_main_buf_mutex);
-	pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
-	pthread_mutex_unlock(&source->audio_recording_buf_mutex);
+	pthread_mutex_unlock(&source->audio_buf_mutex);
 }
 
 static void source_signal_audio_data(obs_source_t *source,
@@ -1333,9 +1321,7 @@ static void source_output_audio_data(obs_source_t *source,
 
 	in.timestamp += source->timing_adjust;
 
-	pthread_mutex_lock(&source->audio_main_buf_mutex);
-	pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-	pthread_mutex_lock(&source->audio_recording_buf_mutex);
+	pthread_mutex_lock(&source->audio_buf_mutex);
 
 	if (source->next_audio_sys_ts_min == in.timestamp) {
 		push_back = true;
@@ -1378,9 +1364,7 @@ static void source_output_audio_data(obs_source_t *source,
 			source_output_audio_place(source, &in);
 	}
 
-	pthread_mutex_unlock(&source->audio_main_buf_mutex);
-	pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
-	pthread_mutex_unlock(&source->audio_recording_buf_mutex);
+	pthread_mutex_unlock(&source->audio_buf_mutex);
 
 	source_signal_audio_data(source, data, source_muted(source, os_time));
 }
@@ -2862,17 +2846,13 @@ void obs_source_show_preloaded_video(obs_source_t *source)
 
 	source->async_active = true;
 
-	pthread_mutex_lock(&source->audio_main_buf_mutex);
-	pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-	pthread_mutex_lock(&source->audio_recording_buf_mutex);
+	pthread_mutex_lock(&source->audio_buf_mutex);
 	sys_ts = (source->monitoring_type != OBS_MONITORING_TYPE_MONITOR_ONLY)
 			 ? os_gettime_ns()
 			 : 0;
 	reset_audio_timing(source, source->last_frame_ts, sys_ts);
 	reset_audio_data(source, sys_ts);
-	pthread_mutex_unlock(&source->audio_main_buf_mutex);
-	pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
-	pthread_mutex_unlock(&source->audio_recording_buf_mutex);
+	pthread_mutex_unlock(&source->audio_buf_mutex);
 }
 
 static inline struct obs_audio_data *
@@ -4491,13 +4471,13 @@ static inline void process_audio_source_tick(obs_source_t *source,
 	bool audio_submix = !!(source->info.output_flags & OBS_SOURCE_SUBMIX);
 
 	// Main audio
-	pthread_mutex_lock(&source->audio_main_buf_mutex);
+	pthread_mutex_lock(&source->audio_buf_mutex);
 
 	for (enum obs_audio_rendering_mode mode = OBS_MAIN_AUDIO_RENDERING;
 	     mode <= OBS_RECORDING_AUDIO_RENDERING; mode++) {
 		if (source->audio_input_buf[mode][0].size < size) {
 			source->audio_pending = true;
-			pthread_mutex_unlock(&source->audio_main_buf_mutex);
+			pthread_mutex_unlock(&source->audio_buf_mutex);
 			return;
 		}
 
@@ -4507,7 +4487,7 @@ static inline void process_audio_source_tick(obs_source_t *source,
 				source->audio_output_buf[mode][0][ch], size);
 	}
 
-	pthread_mutex_unlock(&source->audio_main_buf_mutex);
+	pthread_mutex_unlock(&source->audio_buf_mutex);
 
 	for (size_t mix = 1; mix < MAX_AUDIO_MIXES; mix++) {
 		uint32_t mix_and_val = (1 << mix);
@@ -4711,14 +4691,10 @@ void obs_source_set_async_decoupled(obs_source_t *source, bool decouple)
 
 	source->async_decoupled = decouple;
 	if (decouple) {
-		pthread_mutex_lock(&source->audio_main_buf_mutex);
-		pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-		pthread_mutex_lock(&source->audio_recording_buf_mutex);
+		pthread_mutex_lock(&source->audio_buf_mutex);
 		source->timing_set = false;
 		reset_audio_data(source, 0);
-		pthread_mutex_unlock(&source->audio_main_buf_mutex);
-		pthread_mutex_unlock(&source->audio_streaming_buf_mutex);
-		pthread_mutex_unlock(&source->audio_recording_buf_mutex);
+		pthread_mutex_unlock(&source->audio_buf_mutex);
 	}
 }
 

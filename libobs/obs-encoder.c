@@ -1015,7 +1015,6 @@ static const char *receive_video_name = "receive_video";
 static void receive_video(void *param, struct video_data *streaming_frame,
 			  struct video_data *recording_frame)
 {
-	blog(LOG_INFO, "receive video");
 	profile_start(receive_video_name);
 
 	struct obs_encoder *encoder = param;
@@ -1050,9 +1049,8 @@ static void receive_video(void *param, struct video_data *streaming_frame,
 
 	if (!encoder->first_received && pair) {
 		if (!pair->first_received ||
-		    pair->first_raw_ts > frame->timestamp) {
+		    pair->first_raw_ts > frame->timestamp)
 			goto wait_for_audio;
-		}
 	}
 
 	if (video_pause_check(&encoder->pause, frame->timestamp))
@@ -1071,7 +1069,6 @@ static void receive_video(void *param, struct video_data *streaming_frame,
 	enc_frame.frames = 1;
 	enc_frame.pts = encoder->cur_pts;
 
-	blog(LOG_INFO, "do video encoder");
 	if (do_encode(encoder, &enc_frame))
 		encoder->cur_pts += encoder->timebase_num;
 
@@ -1278,7 +1275,6 @@ static void receive_audio(void *param, size_t mix_idx,
 			  struct audio_data *streaming_data,
 			  struct audio_data *recording_data)
 {
-	blog(LOG_INFO, "receive audio");
 	profile_start(receive_audio_name);
 
 	struct obs_encoder *encoder = param;
@@ -1323,7 +1319,6 @@ static void receive_audio(void *param, size_t mix_idx,
 
 	while (encoder->audio_input_buffer[0].size >=
 	       encoder->framesize_bytes) {
-		blog(LOG_INFO, "do audio encoder");
 		if (!send_audio_data(encoder)) {
 			break;
 		}

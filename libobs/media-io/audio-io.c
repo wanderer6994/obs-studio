@@ -160,7 +160,7 @@ static inline void do_audio_output(struct audio_output *audio, size_t mix_idx,
 
 	pthread_mutex_lock(&audio->input_mutex);
 
-	for (size_t i = main_mix->inputs.num; i > 0; i--) {
+	for (size_t i = recording_mix->inputs.num; i > 0; i--) {
 		struct audio_input *main_input =
 			main_mix->inputs.array + (i - 1);
 		struct audio_input *streaming_input =
