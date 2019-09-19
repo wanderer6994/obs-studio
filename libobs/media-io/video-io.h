@@ -246,9 +246,8 @@ EXPORT bool video_output_active(const video_t *video);
 
 EXPORT const struct video_output_info *
 video_output_get_info(const video_t *video);
-EXPORT bool video_output_lock_frame(video_t *video, struct video_frame *frame,
-				    int count, uint64_t timestamp,
-				    enum obs_video_rendering_mode mode);
+EXPORT bool video_output_lock_frame(video_t *video, struct video_frame **frame,
+				    int count, uint64_t *timestamp);
 EXPORT void video_output_unlock_frame(video_t *video);
 EXPORT uint64_t video_output_get_frame_time(const video_t *video);
 EXPORT void video_output_stop(video_t *video);

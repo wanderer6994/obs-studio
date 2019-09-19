@@ -152,10 +152,11 @@ static inline bool video_output_cur_frame(struct video_output *video)
 			if (scale_video_output(input,
 					       &streaming_frame_info->frame) &&
 			    scale_video_output(input,
-					       &recording_frame_info->frame))
+					       &recording_frame_info->frame)) {
 				input->callback(input->param,
 						&streaming_frame_info->frame,
 						&recording_frame_info->frame);
+			}
 		}
 	}
 
@@ -485,36 +486,44 @@ const struct video_output_info *video_output_get_info(const video_t *video)
 	return video ? &video->info : NULL;
 }
 
-bool video_output_lock_frame(video_t *video, struct video_frame *frame,
-			     int count, uint64_t timestamp,
-			     enum obs_video_rendering_mode mode)
+bool video_output_lock_frame(video_t *video, struct video_frame **frames,
+			     int count, uint64_t *timestamp)
 {
-	struct cached_frame_info *cfi;
 	bool locked;
-
+	enum obs_video_rendering_mode start =
+		obs_get_multiple_rendering() ? OBS_STREAMING_VIDEO_RENDERING
+					     : OBS_MAIN_VIDEO_RENDERING;
+	enum obs_video_rendering_mode end =
+		obs_get_multiple_rendering() ? OBS_RECORDING_VIDEO_RENDERING
+					     : OBS_MAIN_VIDEO_RENDERING;
 	if (!video)
 		return false;
 
 	pthread_mutex_lock(&video->data_mutex);
 
 	if (video->available_frames == 0) {
-		video->caches[mode][video->last_added].count += count;
-		video->caches[mode][video->last_added].skipped += count;
+		for (enum obs_video_rendering_mode mode = start; mode <= end;
+		     mode++) {
+			video->caches[mode][video->last_added].count += count;
+			video->caches[mode][video->last_added].skipped += count;
+		}
 		locked = false;
-
 	} else {
 		if (video->available_frames != video->info.cache_size) {
 			if (++video->last_added == video->info.cache_size)
 				video->last_added = 0;
 		}
 
-		cfi = &video->caches[mode][video->last_added];
-		cfi->frame.timestamp = timestamp;
-		cfi->count = count;
-		cfi->skipped = 0;
+		for (enum obs_video_rendering_mode mode = start; mode <= end;
+		     mode++) {
+			struct cached_frame_info *cfi;
+			cfi = &video->caches[mode][video->last_added];
+			cfi->frame.timestamp = timestamp[mode];
+			cfi->count = count;
+			cfi->skipped = 0;
 
-		memcpy(frame, &cfi->frame, sizeof(*frame));
-
+			memcpy(frames[mode], &cfi->frame, sizeof(*frames[mode]));
+		}
 		locked = true;
 	}
 
