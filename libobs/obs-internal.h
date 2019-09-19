@@ -634,9 +634,7 @@ struct obs_source {
 	struct resample_info sample_info;
 	audio_resampler_t *resampler;
 	pthread_mutex_t audio_actions_mutex;
-	pthread_mutex_t audio_main_buf_mutex;
-	pthread_mutex_t audio_streaming_buf_mutex;
-	pthread_mutex_t audio_recording_buf_mutex;
+	pthread_mutex_t audio_buf_mutex;
 	pthread_mutex_t audio_mutex;
 	pthread_mutex_t audio_cb_mutex;
 	DARRAY(struct audio_cb_info) audio_cb_list;

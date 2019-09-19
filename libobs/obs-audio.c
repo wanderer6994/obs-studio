@@ -519,9 +519,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 			if (source->audio_pending)
 				continue;
 
-			pthread_mutex_lock(&source->audio_main_buf_mutex);
-			pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-			pthread_mutex_lock(&source->audio_recording_buf_mutex);
+			pthread_mutex_lock(&source->audio_buf_mutex);
 
 			if (source->audio_output_buf[OBS_MAIN_AUDIO_RENDERING]
 						    [0][0] &&
@@ -530,11 +528,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 					  recording_mixes, source, channels,
 					  sample_rate, &ts);
 
-			pthread_mutex_unlock(&source->audio_main_buf_mutex);
-			pthread_mutex_unlock(
-				&source->audio_streaming_buf_mutex);
-			pthread_mutex_unlock(
-				&source->audio_recording_buf_mutex);
+			pthread_mutex_unlock(&source->audio_buf_mutex);
 		}
 	}
 
@@ -548,16 +542,10 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 		// See the comment on the very fist lock of the 'first_audio_source' mutex on this
 		// same method to an explanation why this is done.
 		if (source->control->ref.refs > -1) {
-			pthread_mutex_lock(&source->audio_main_buf_mutex);
-			pthread_mutex_lock(&source->audio_streaming_buf_mutex);
-			pthread_mutex_lock(&source->audio_recording_buf_mutex);
+			pthread_mutex_lock(&source->audio_buf_mutex);
 			discard_audio(audio, source, channels, sample_rate,
 				      &ts);
-			pthread_mutex_unlock(&source->audio_main_buf_mutex);
-			pthread_mutex_unlock(
-				&source->audio_streaming_buf_mutex);
-			pthread_mutex_unlock(
-				&source->audio_recording_buf_mutex);
+			pthread_mutex_unlock(&source->audio_buf_mutex);
 		}
 
 		source = (struct obs_source *)source->next_audio_source;

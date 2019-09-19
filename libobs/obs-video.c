@@ -716,28 +716,27 @@ static inline void output_video_data(struct obs_core_video *video,
 				     int count)
 {
 	const struct video_output_info *info;
+	struct video_frame *output_frames[NUM_RENDERING_MODES];
 	struct video_frame main_output_frame;
 	struct video_frame streaming_output_frame;
 	struct video_frame recording_output_frame;
+
+	output_frames[OBS_MAIN_VIDEO_RENDERING] = &main_output_frame;
+	output_frames[OBS_STREAMING_VIDEO_RENDERING] = &streaming_output_frame;
+	output_frames[OBS_RECORDING_VIDEO_RENDERING] = &recording_output_frame;
 	bool locked;
+	uint64_t timestamps[NUM_RENDERING_MODES];
 
 	info = video_output_get_info(video->video);
 
-	if (!obs_get_multiple_rendering()) {
-		locked = video_output_lock_frame(video->video,
-						 &main_output_frame, count,
-						 main_input_frame->timestamp,
-						 OBS_MAIN_VIDEO_RENDERING);
-	} else {
-		locked = video_output_lock_frame(
-			video->video, &streaming_output_frame, count,
-			streaming_input_frame->timestamp,
-			OBS_STREAMING_VIDEO_RENDERING);
-		locked &= video_output_lock_frame(
-			video->video, &recording_output_frame, count,
-			recording_input_frame->timestamp,
-			OBS_RECORDING_VIDEO_RENDERING);
-	}
+	timestamps[OBS_MAIN_VIDEO_RENDERING] = main_input_frame->timestamp;
+	timestamps[OBS_STREAMING_VIDEO_RENDERING] =
+		streaming_input_frame->timestamp;
+	timestamps[OBS_RECORDING_VIDEO_RENDERING] =
+		recording_input_frame->timestamp;
+
+	locked = video_output_lock_frame(video->video, output_frames, count,
+					 timestamps);
 	if (locked) {
 		if (!obs_get_multiple_rendering()) {
 			if (video->gpu_conversion) {

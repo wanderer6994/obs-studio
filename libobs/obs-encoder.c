@@ -1049,9 +1049,8 @@ static void receive_video(void *param, struct video_data *streaming_frame,
 
 	if (!encoder->first_received && pair) {
 		if (!pair->first_received ||
-		    pair->first_raw_ts > frame->timestamp) {
+		    pair->first_raw_ts > frame->timestamp)
 			goto wait_for_audio;
-		}
 	}
 
 	if (video_pause_check(&encoder->pause, frame->timestamp))
