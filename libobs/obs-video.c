@@ -825,9 +825,7 @@ static inline void output_frame(bool raw_active, const bool gpu_active)
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_RENDER_VIDEO,
 			      output_frame_render_video_name);
 
-	enum obs_video_rendering_mode start =
-		obs_get_multiple_rendering() ? OBS_STREAMING_VIDEO_RENDERING
-					     : OBS_MAIN_VIDEO_RENDERING;
+	enum obs_video_rendering_mode start = OBS_MAIN_VIDEO_RENDERING;
 	enum obs_video_rendering_mode end =
 		obs_get_multiple_rendering() ? OBS_RECORDING_VIDEO_RENDERING
 					     : OBS_MAIN_VIDEO_RENDERING;
