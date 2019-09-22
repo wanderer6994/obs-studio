@@ -4401,7 +4401,7 @@ static void custom_audio_render(obs_source_t *source, uint32_t mixers,
 						    sample_rate);
 
 		obs_set_audio_rendering_mode(OBS_RECORDING_AUDIO_RENDERING);
-		success &= source->info.audio_render(source->context.data, &ts,
+		success |= source->info.audio_render(source->context.data, &ts,
 					  &recording_audio_data, mixers,
 					  channels, sample_rate);
 	}
