@@ -1260,16 +1260,16 @@ static vector<UInt32> get_bitrates(DStr &log, ca_encoder *ca,
 	
 	if (channels == 0) 
 		return bitrates;
-		
+
 	for (UInt32 format_id : (ca ? *ca->allowed_formats : aac_formats)) {
 		log_to_dstr(log, ca, "Trying %s (0x%x) at %g" NBSP "hz\n",
-				format_id_to_str(format_id),
-				static_cast<uint32_t>(format_id), samplerate);
-		
+				    format_id_to_str(format_id),
+				    static_cast<uint32_t>(format_id), samplerate);
+
 		auto out = get_default_out_asbd_builder(channels)
-				.format_id(format_id)
-				.sample_rate(samplerate)
-				.asbd;
+						   .format_id(format_id)
+						   .sample_rate(samplerate)
+						   .asbd;
 
 		auto converter = get_converter(log, ca, out);
 
