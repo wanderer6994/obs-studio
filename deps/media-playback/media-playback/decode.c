@@ -221,6 +221,8 @@ void mp_decode_free(struct mp_decode *d)
 #else
 		avcodec_close(d->decoder);
 #endif
+	} else {
+		blog(LOG_INFO, "Skip releasing memory");
 	}
 	if (d->hw_frame) {
 		av_frame_unref(d->hw_frame);
