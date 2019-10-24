@@ -69,7 +69,7 @@ steps:
 - script: 'cmake -H.
                  -B"%BuildPath32%"
                  -G"%CmakeGenerator%"
-                 -A x32
+                 -A x86
                  -DCMAKE_INSTALL_PREFIX="%InstallPath32%"
                  -DDepsPath="%DepsPath32%"
                  -DVLCPath="%VLCLibPath%"
