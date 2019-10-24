@@ -29,7 +29,8 @@ variables:
   DepsPath64: $(Build.SourcesDirectory)\dependencies2017\win64
   BuildPath32: $(Build.SourcesDirectory)\build32
   BuildPath64: $(Build.SourcesDirectory)\build64
-  InstallPath: $(Build.SourcesDirectory)\packed_build
+  InstallPath32: $(Build.SourcesDirectory)\packed_build_32
+  InstallPath64: $(Build.SourcesDirectory)\packed_build_64
   CefVersion: 75.1.16_g16a67c4_chromium-75.0.3770.100
   CefDirName: cef_binary_$(CefVersion)_windows64_minimal
   CefPath: $(Build.SourcesDirectory)\$(CefDirName)
@@ -66,10 +67,34 @@ steps:
   displayName: 'Build libCef'
 
 - script: 'cmake -H.
+                 -B"%BuildPath32%"
+                 -G"%CmakeGenerator%"
+                 -A x32
+                 -DCMAKE_INSTALL_PREFIX="%InstallPath32%"
+                 -DDepsPath="%DepsPath32%"
+                 -DVLCPath="%VLCLibPath%"
+                 -DCEF_ROOT_DIR="%CefPath%"
+                 -DENABLE_UI=false
+                 -DCOPIED_DEPENDENCIES=false
+                 -DCOPY_DEPENDENCIES=true
+                 -DENABLE_SCRIPTING=false
+                 -DBUILD_CAPTIONS=false
+                 -DCOMPILE_D3D12_HOOK=true
+                 -DBUILD_BROWSER=true
+                 -DBROWSER_FRONTEND_API_SUPPORT=false
+                 -DBROWSER_PANEL_SUPPORT=false
+                 -DBROWSER_USE_STATIC_CRT=false
+                 -DEXPERIMENTAL_SHARED_TEXTURE_SUPPORT=true'
+  displayName: 'Configure libobs 32 bits'
+
+- script: 'cmake --build "%BuildPath32%" --target install --config %BuildConfig% -v'
+  displayName: 'Build libobs 32 bits'
+
+- script: 'cmake -H.
                  -B"%BuildPath64%"
                  -G"%CmakeGenerator%"
                  -A x64
-                 -DCMAKE_INSTALL_PREFIX="%InstallPath%"
+                 -DCMAKE_INSTALL_PREFIX="%InstallPath64%"
                  -DDepsPath="%DepsPath64%"
                  -DVLCPath="%VLCLibPath%"
                  -DCEF_ROOT_DIR="%CefPath%"
@@ -84,11 +109,20 @@ steps:
                  -DBROWSER_PANEL_SUPPORT=false
                  -DBROWSER_USE_STATIC_CRT=false
                  -DEXPERIMENTAL_SHARED_TEXTURE_SUPPORT=true'
-  displayName: 'Configure libobs'
+  displayName: 'Configure libobs 64 bits'
 
 - script: 'cmake --build "%BuildPath64%" --target install --config %BuildConfig% -v'
-  displayName: 'Build libobs'
-  
+  displayName: 'Build libobs 64 bits'
+
+- script: 'copy %InstallPath32%\data\obs-plugins\win-capture\get-graphics-offsets32.exe %InstallPath64%\data\obs-plugins\win-capture\'
+  displayName: 'Copy get-graphics-offsets32.exe'
+
+- script: 'copy %InstallPath32%\data\obs-plugins\win-capture\graphics-hook32.dll %InstallPath64%\data\obs-plugins\win-capture\'
+  displayName: 'Copy graphics-hook32.dll'
+
+- script: 'copy %InstallPath32%\data\obs-plugins\win-capture\inject-helper32.exe %InstallPath64%\data\obs-plugins\win-capture\'
+  displayName: 'Copy inject-helper32.exe'
+
 - task: ArchiveFiles@2
   inputs:
     rootFolderOrFile: $(InstallPath)
