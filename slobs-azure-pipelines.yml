@@ -80,7 +80,7 @@ steps:
                  -DENABLE_SCRIPTING=false
                  -DBUILD_CAPTIONS=false
                  -DCOMPILE_D3D12_HOOK=true
-                 -DBUILD_BROWSER=true
+                 -DBUILD_BROWSER=false
                  -DBROWSER_FRONTEND_API_SUPPORT=false
                  -DBROWSER_PANEL_SUPPORT=false
                  -DBROWSER_USE_STATIC_CRT=false
